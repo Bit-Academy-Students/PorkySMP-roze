@@ -88,11 +88,12 @@ wensen zijn hetzelfde als must haves
 
 | Type                                      | Datum         | Tijd   | Locatie                   |
 | ----------------------------------------- | ------------- | ------ | ------------------------- |
-| Sprint 1 **planning**                      | `<dd mmm yyyy>` | `10:00` | stilte lokaal               |
-| Sprint 2 **review + planning + retro**     | `<dd mmm yyyy>` | `10:00` | stilte lokaal               |
-| Sprint 3 **planning + halfway presentatie**| `<dd mmm yyyy>` | `10:00` | stilte lokaal             |
-| Sprint 4 **review + planning + retro**     | `<dd mmm yyyy>` | `10:00` | stilte lokaal            |
-| Sprint 5 **review + eindpresentatie**      | `<dd mmm yyyy>` | `10:00` | stilte lokaal               |
+| Sprint 1 **planning**                      | `<dd mmm yyyy>` | `10:00` | stilte lokaal         |
+| Sprint 2 **review + planning**             | `<dd mmm yyyy>` | `10:00` | stilte lokaal         |
+| sprint 2,5 **retro**                       | `<dd mmm yyyy>` | `10:00` | stilte lokaal         |
+| Sprint 3 **planning + halfway presentatie**| `<dd mmm yyyy>` | `10:00` | stilte lokaal         |
+| Sprint 4 **review + planning**             | `<dd mmm yyyy>` | `10:00` | stilte lokaal         |
+| Sprint 5 **review + eindpresentatie**      | `<dd mmm yyyy>` | `10:00` | stilte lokaal         |
 
 > Pas data aan op basis van jouw kalender. Alle meetings zijn fysiek, tenzij anders afgesproken met de coach/klant.
 
