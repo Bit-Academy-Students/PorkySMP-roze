@@ -29,25 +29,20 @@ Wesley keizer zoveel mogelijk helpen met 3 van zijn eisen waaronder: Teamoverzic
 ### Eisen en wensen
 
 **Eisen (Must-haves):**
-- [teamoverzicht] `een teamoverzicht maken door middel van een database aanmaken voor een duidelijk overzicht van de volgende informatie van spelers; Gebruikersnaam, afbeelding van skin, datum van eerste login, in welk(e) land(en) dit persoon in zit, over het land moet de naam er van staan, vlag van het land, coordinaten hoofdstad land, leider van land, eventuele kabinetsleden van land, andere spelers die in het land wonen, met gemakkelijke toegang van admins voor toewijzigingen maken, en ook dat alle bezoekers de informatie over de landen en spelers kan zien.
-`
+- [team overzicht]
+`een teamoverzicht maken door middel van een database aanmaken voor een duidelijk overzicht van de volgende informatie van spelers; Gebruikersnaam, afbeelding van skin, datum van eerste login, in welk(e) land(en) dit persoon in zit, andere spelers die in het land wonen, met gemakkelijke toegang van admins voor toewijzigingen maken, en ook dat alle bezoekers de informatie over de landen en spelers kan zien.`
 
-- [gebruikerslogin] `Gebruikers moeten kunnen inloggen op de website. Hiervoor wordt een standaard login-systeem gebruikt met:
+- [gebruikers login]
+`Gebruikers moeten kunnen inloggen op de website. Hiervoor wordt een standaard login-systeem gebruikt met: - Gebruikersnaam / wachtwoord - Wachtwoord reset via email. Ingelogde gebruikers kunnen afhankelijk van hun rol extra functies uitvoeren op de website.`
 
-- Gebruikersnaam / wachtwoord
-- Wachtwoord reset via email
-
-Ingelogde gebruikers kunnen afhankelijk van hun rol extra functies uitvoeren op de website.`
-`
-- [gebruikers koppelen aan teams] ` Spelers kunnen onderdeel zijn van één of meerdere landen, of kunnen zelfs staatloos zijn. Hiermee zal rekening moeten worden gehouden in het implementeren van de database.
-
-Administrators kunnen spelers aan teams toevoegen en verwijderen. Later is het de bedoeling dat spelers en leiders dit zelf kunnen doen via het ACL`
+- [gebruikers koppelen aan teams]
+`Spelers kunnen onderdeel zijn van één of meerdere landen, of kunnen zelfs staatloos zijn. Hiermee zal rekening moeten worden gehouden in het implementeren van de database. Administrators kunnen spelers aan teams toevoegen en verwijderen. Later is het de bedoeling dat spelers en leiders dit zelf kunnen doen via het ACL`
 
 - [ ] **Responsief** (mobiel & desktop)
 
 **Wensen (Nice-to-haves):**
-wensen zijn hetzelfde als must haves
-
+- [team overzicht]
+`Over het land moet de naam er van staan, vlag van het land, coordinaten hoofdstad land, leider van land, eventuele kabinetsleden van land.`
 
 
 
