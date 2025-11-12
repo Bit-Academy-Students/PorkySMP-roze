@@ -57,12 +57,13 @@ wensen zijn hetzelfde als must haves
 > **Minimaal 5 stories.** Zet elke story in de juiste MoSCoW-categorie.
 
 ### ✅ Must have (M)
-- [ ] `<Story M1>`  
-- [ ] `<Story M2>`
+- [ ] `als eerste developer wil ik de gebruikerslogin als eerste af hebben zodat iedereen soepel in kan loggen`  
+- [ ] `als beheerder wil ik admins de kracht geven om alle informatie wat met de teams te maken heeft te kunnen aanpassen/toevoegen`
+- [ ] `als gebruiker wil ik mijn team online kunnen aanmelden en aanpassen`
 
 ### 🟠 Should have (S)
-- [ ] `<Story S1>`  
-- [ ] `<Story S2>`
+- [ ] `als gebruiker wil ik op de website een net overzicht hebben van informatie van de spelers`  
+- [ ] `als admanistrator wil ik spelers kunnen toevoegen en verwijderen aan teams. Later is het de bedoeling dat spelers en leiders dit zelf kunnen doen via het ACL`
 
 ### 🔵 Could have (C)
 - [ ] `<Story C1>`
