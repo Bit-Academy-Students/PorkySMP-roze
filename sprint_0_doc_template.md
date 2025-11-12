@@ -12,11 +12,12 @@ Hierbij gaan wij aan de volgende punten werken: teamoverzicht, gebruikerslogin, 
 
 | Rol                       | Naam                 | E-mail                         | Telefoon     |
 | ------------------------- | -------------------- | ------------------------------ | ------------ |
-| **Product Owner (klant)** | `Wesley Keizer     ` | `Wkeizer@porkify.net`              | `<06-xxxx>`  |
+| **Product Owner (klant)** | `Wesley Keizer`      | `Wkeizer@porkify.net`          | `<06-xxxx>`  |
+| **Tech lead**             | `Fabian Nierop`      | `placeholder`                  | `<06-xxxx>`  |
 | **Scrum Coach**           | `Ties Noordhuis`     | `ties@bit-academy.nl`          | `06-29313578`|
-| **Developer 1**           | `Dean`               | `deanoosterbaan@Gmail.com`    | `0611052168`  |
-| **Developer 2**           | `Chris`              | `chrisgroot06@gmail.com`    | `<06-40469543>`  |
-| **Developer 3**           | `Dariel`             | `darielvanderzwan@gmail.com`    | `<06-14139181>`  |
+| **Developer 1**           | `Dean`               | `deanoosterbaan@Gmail.com`     | `0611052168`  |
+| **Developer 2**           | `Chris`              | `chrisgroot06@gmail.com`       | `<06-40469543>`  |
+| **Developer 3**           | `Dariel`             | `darielvanderzwan@gmail.com`   | `<06-14139181>`  |
 
 
 ## 🎯 Wat
