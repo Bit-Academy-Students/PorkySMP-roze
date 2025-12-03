@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use App\Models\Team;
 
-// Homepage
+// Homepagina
 Route::get('/', function () {
     return view('welcome');
 });
