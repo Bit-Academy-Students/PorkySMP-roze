@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\team;
-use App\Models\userteam;
+use App\Models\Team;
+use App\Models\UserTeam;
 
 class TeamController extends Controller
 {
