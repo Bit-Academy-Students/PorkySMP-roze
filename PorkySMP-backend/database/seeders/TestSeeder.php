@@ -13,7 +13,7 @@ class TestSeeder extends Seeder
     public function run()
     {
         $user = \App\Models\User::create([
-        'name' => 'Fedde',
+        'username' => 'Fedde',
         'email' => 'fedde@example.com',
         'password' => bcrypt('secret')
         ]);

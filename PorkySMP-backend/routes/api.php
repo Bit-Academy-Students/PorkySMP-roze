@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Support\Facades\Route;   // <<<<<<<<<< Dit was waarschijnlijk missing
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\UserController;
@@ -16,7 +16,7 @@ Route::put('/users/{id}', [UserController::class, 'update']);
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
 // TEAMS
-Route::get('/teams', [TeamController::class, 'index']);
+Route::get('/teams', [TeamController::class, 'index']); 
 Route::get('/teams/{id}', [TeamController::class, 'show']);
 Route::post('/teams', [TeamController::class, 'store']);
 Route::put('/teams/{id}', [TeamController::class, 'update']);
