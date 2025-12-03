@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Server - Community</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Minecraftia&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Navigatie -->
+    <nav class="bg-gray-800 p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold minecraft-font">Minecraft Server</h1>
+            <div class="flex space-x-4">
+                <button id="loginBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">Inloggen</button>
+                <button id="registerBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Registreren</button>
+                <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded hidden">Uitloggen</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hoofdinhoud -->
+    <main class="container mx-auto p-4">
+        <!-- Welkomstbericht -->
+        <div id="welcomeSection" class="text-center mb-8">
+            <h2 class="text-4xl minecraft-font mb-4">Welkom op onze Minecraft Server!</h2>
+            <p class="text-xl">Registreer een account, log in en maak teams om samen te spelen!</p>
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h3 class="text-xl minecraft-font mb-2">Account maken</h3>
+                    <p>Maak een account aan om toegang te krijgen tot alle functies</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h3 class="text-xl minecraft-font mb-2">Teams creëren</h3>
+                    <p>Word teamleider en nodig vrienden uit om samen te spelen</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h3 class="text-xl minecraft-font mb-2">Samenwerken</h3>
+                    <p>Bouw, verken en overleef samen met je team</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inlog Formulier -->
+        <div id="loginSection" class="max-w-md mx-auto bg-gray-800 p-6 rounded-lg shadow-lg hidden">
+            <h2 class="text-2xl minecraft-font mb-4">Inloggen</h2>
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label for="loginUsername" class="block mb-2">Gebruikersnaam</label>
+                    <input type="text" id="loginUsername" class="w-full p-2 rounded bg-gray-700" required>
+                </div>
+                <div class="mb-4">
+                    <label for="loginPassword" class="block mb-2">Wachtwoord</label>
+                    <input type="password" id="loginPassword" class="w-full p-2 rounded bg-gray-700" required>
+                </div>
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded">Inloggen</button>
+            </form>
+            <p class="mt-4 text-center">Nog geen account? <button id="showRegister" class="text-blue-400 hover:underline">Registreer hier</button></p>
+        </div>
+
+        <!-- Registratie Formulier -->
+        <div id="registerSection" class="max-w-md mx-auto bg-gray-800 p-6 rounded-lg shadow-lg hidden">
+            <h2 class="text-2xl minecraft-font mb-4">Registreren</h2>
+            <form id="registerForm">
+                <div class="mb-4">
+                    <label for="registerUsername" class="block mb-2">Gebruikersnaam</label>
+                    <input type="text" id="registerUsername" class="w-full p-2 rounded bg-gray-700" required>
+                    <p class="text-xs text-gray-400 mt-1">Dit is de naam die anderen zullen zien</p>
+                </div>
+                <div class="mb-4">
+                    <label for="registerEmail" class="block mb-2">E-mail</label>
+                    <input type="email" id="registerEmail" class="w-full p-2 rounded bg-gray-700" required>
+                    <p class="text-xs text-gray-400 mt-1">Wordt alleen gebruikt voor accountherstel</p>
+                </div>
+                <div class="mb-4">
+                    <label for="registerPassword" class="block mb-2">Wachtwoord</label>
+                    <input type="password" id="registerPassword" class="w-full p-2 rounded bg-gray-700" required>
+                </div>
+                <div class="mb-4">
+                    <label for="confirmPassword" class="block mb-2">Bevestig Wachtwoord</label>
+                    <input type="password" id="confirmPassword" class="w-full p-2 rounded bg-gray-700" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded">Registreren</button>
+            </form>
+            <p class="mt-4 text-center">Al een account? <button id="showLogin" class="text-blue-400 hover:underline">Log hier in</button></p>
+        </div>
+
+        <!-- Dashboard (alleen zichtbaar na inloggen) -->
+        <div id="dashboardSection" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl minecraft-font">Dashboard</h2>
+                <div class="text-right">
+                    <p class="text-lg">Welkom, <span id="currentUsername" class="font-bold text-green-400"></span>!</p>
+                    <p class="text-sm text-gray-400">Je bent ingelogd als: <span id="currentUserEmail"></span></p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Team Management -->
+                <div class="lg:col-span-2">
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h3 class="text-xl minecraft-font mb-4">Team Beheer</h3>
+                        
+                        <!-- Team Aanmaken -->
+                        <div class="mb-6">
+                            <h4 class="text-lg mb-2">Team Aanmaken</h4>
+                            <div class="flex">
+                                <input type="text" id="teamName" placeholder="Team naam" class="flex-grow p-2 rounded-l bg-gray-700">
+                                <button id="createTeamBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-r">Aanmaken</button>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-1">Als teamleider kun je later spelers uitnodigen</p>
+                        </div>
+                        
+                        <!-- Speler Uitnodigen -->
+                        <div class="mb-6">
+                            <h4 class="text-lg mb-2">Speler Uitnodigen <span class="text-xs text-yellow-400">(Alleen voor eigenaren)</span></h4>
+                            
+                            <div id="noTeamsMessage" class="hidden mb-3 p-3 bg-yellow-900 rounded">
+                                <p class="text-sm">Je bent nog geen eigenaar van een team. Maak eerst een team aan om spelers uit te nodigen.</p>
+                            </div>
+                            
+                            <div id="inviteControls">
+                                <div class="flex mb-2">
+                                    <select id="teamSelect" class="flex-grow p-2 rounded bg-gray-700">
+                                        <option value="">Selecteer een team</option>
+                                    </select>
+                                </div>
+                                <div class="flex">
+                                    <input type="text" id="inviteUsername" placeholder="Gebruikersnaam" class="flex-grow p-2 rounded-l bg-gray-700">
+                                    <button id="inviteBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-r">Uitnodigen</button>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Je kunt alleen uitnodigen voor teams waarvan jij de eigenaar bent</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Mijn Teams -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-lg">Mijn Teams</h4>
+                                <span class="text-sm text-gray-400" id="teamsCount">0 teams</span>
+                            </div>
+                            <div id="teamsList" class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                                <!-- Teams worden hier dynamisch toegevoegd -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Uitnodigingen en Info -->
+                <div class="space-y-6">
+                    <!-- Uitnodigingen -->
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h3 class="text-xl minecraft-font mb-4">Uitnodigingen</h3>
+                        <div id="invitationsList" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                            <!-- Uitnodigingen worden hier dynamisch toegevoegd -->
+                        </div>
+                    </div>
+                    
+                    <!-- Account Info -->
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h3 class="text-xl minecraft-font mb-4">Account Informatie</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-sm text-gray-400">Gebruikersnaam</p>
+                                <p id="dashboardUsername" class="font-bold">-</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400">Aangemaakt teams</p>
+                                <p id="ownedTeamsCount" class="font-bold">0</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400">Lid van teams</p>
+                                <p id="memberTeamsCount" class="font-bold">0</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-400">Open uitnodigingen</p>
+                                <p id="pendingInvitationsCount" class="font-bold">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="bg-gray-800 p-6 rounded-lg">
+                        <h3 class="text-xl minecraft-font mb-4">Snelle Acties</h3>
+                        <div class="space-y-2">
+                            <button onclick="refreshDashboard()" class="w-full bg-gray-700 hover:bg-gray-600 p-2 rounded text-left">
+                                <span class="font-bold">⟳</span> Dashboard vernieuwen
+                            </button>
+                            <button id="createAnotherTeamBtn" class="w-full bg-green-700 hover:bg-green-600 p-2 rounded text-left">
+                                <span class="font-bold">+</span> Nog een team aanmaken
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Server Info -->
+        <div id="serverInfo" class="mt-8 bg-gray-800 p-6 rounded-lg">
+            <h2 class="text-2xl minecraft-font mb-4">Server Informatie</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-gray-700 rounded">
+                    <h3 class="text-xl mb-2">IP Adres</h3>
+                    <p class="text-green-400 font-mono">play.minecraftserver.nl</p>
+                </div>
+                <div class="text-center p-4 bg-gray-700 rounded">
+                    <h3 class="text-xl mb-2">Versie</h3>
+                    <p class="font-bold">1.20.1</p>
+                </div>
+                <div class="text-center p-4 bg-gray-700 rounded">
+                    <h3 class="text-xl mb-2">Online Spelers</h3>
+                    <p id="onlinePlayers" class="text-2xl font-bold text-green-400">42/100</p>
+                </div>
+                <div class="text-center p-4 bg-gray-700 rounded">
+                    <h3 class="text-xl mb-2">Teams Actief</h3>
+                    <p id="activeTeamsCount" class="text-2xl font-bold text-blue-400">0</p>
+                </div>
+            </div>
+            
+            <!-- Server Regels -->
+            <div class="mt-6 pt-6 border-t border-gray-700">
+                <h3 class="text-xl minecraft-font mb-3">Team Regels</h3>
+                <ul class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <li class="flex items-start">
+                        <span class="text-green-400 mr-2">✓</span>
+                        <span>Alleen teamleiders kunnen nieuwe leden uitnodigen</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-400 mr-2">✓</span>
+                        <span>Maximaal 8 spelers per team</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-400 mr-2">✓</span>
+                        <span>Wees respectvol tegen teamleden</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-green-400 mr-2">✓</span>
+                        <span>Geen griefing binnen teams</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 mt-8 p-6">
+        <div class="container mx-auto text-center">
+            <p class="text-gray-400">© 2023 Minecraft Server. Alle rechten voorbehouden.</p>
+            <p class="text-gray-500 text-sm mt-2">Deze website gebruikt localStorage om je accountgegevens op te slaan. Wis je browserdata om je account te verwijderen.</p>
+        </div>
+    </footer>
+
+    <!-- Meldingen -->
+    <div id="notification" class="fixed top-4 right-4 p-4 rounded-lg shadow-lg hidden z-50"></div>
+
+    <script src="script.js"></script>
+    
+    <script>
+        // Extra JavaScript voor dashboard functionaliteiten
+        function refreshDashboard() {
+            if (currentUser) {
+                loadTeamsForUser();
+                loadInvitationsForUser();
+                updateTeamUI();
+                updateDashboardStats();
+                showNotification('Dashboard vernieuwd', 'info');
+            }
+        }
+        
+        function updateDashboardStats() {
+            if (!currentUser) return;
+            
+            // Update gebruikersnaam
+            document.getElementById('currentUsername').textContent = currentUser.username;
+            document.getElementById('currentUserEmail').textContent = currentUser.email;
+            document.getElementById('dashboardUsername').textContent = currentUser.username;
+            
+            // Tel aantal teams waar gebruiker eigenaar van is
+            const ownedTeams = getTeamsOwnedByUser();
+            document.getElementById('ownedTeamsCount').textContent = ownedTeams.length;
+            
+            // Tel totaal aantal teams waar gebruiker lid van is
+            document.getElementById('memberTeamsCount').textContent = currentUser.teams.length;
+            
+            // Tel open uitnodigingen
+            document.getElementById('pendingInvitationsCount').textContent = currentUser.invitations.length;
+            
+            // Update teams count
+            document.getElementById('teamsCount').textContent = `${currentUser.teams.length} ${currentUser.teams.length === 1 ? 'team' : 'teams'}`;
+            
+            // Update server stats
+            document.getElementById('activeTeamsCount').textContent = teams.length;
+        }
+        
+        // Voeg deze functies toe aan de globale scope
+        window.refreshDashboard = refreshDashboard;
+        window.getTeamsOwnedByUser = getTeamsOwnedByUser;
+        
+        // Knop voor extra team aanmaken
+        document.getElementById('createAnotherTeamBtn')?.addEventListener('click', () => {
+            document.getElementById('teamName').focus();
+            showNotification('Voer een teamnaam in het veld hierboven in', 'info');
+        });
+        
+        // Initialiseer dashboard stats bij laden
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (currentUser) {
+                    updateDashboardStats();
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>
