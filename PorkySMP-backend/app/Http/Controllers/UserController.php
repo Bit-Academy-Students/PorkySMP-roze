@@ -89,27 +89,38 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        
+        // Valideer de nieuwe velden
+        $request->validate([
+            'username' => 'nullable|string|max:255|unique:users,username,' . $user->id,
+            'email' => 'nullable|string|email|max:255|unique:users,email,' . $user->id,
+            'role' => 'nullable|in:user,admin',
+            'password' => 'nullable|string|min:6|confirmed',
+        ]);
 
-        // Valideer indien er een wachtwoord wordt meegegeven
+        // Valideer en hashen van wachtwoord indien aanwezig
         if ($request->has('password')) {
             $request->merge(['password' => Hash::make($request->password)]);
         }
 
-        $user->update($request->all());
+        // Update de gebruiker. password_confirmation wordt uitgesloten door 'except'.
+        $user->update($request->except(['password_confirmation']));
 
+        // Zorg ervoor dat de bijgewerkte rol en e-mail zichtbaar zijn in de respons
         return response()->json([
             'message' => 'Gebruiker bijgewerkt',
-            'user' => $user
+            'user' => $user->load('teams', 'playerInfo')->makeVisible(['email', 'role']) 
         ]);
     }
 
     // Gebruiker verwijderen (Alleen voor admin)
     public function destroy($id)
     {
-        User::destroy($id);
+        $user = User::findOrFail($id);
+        $user->delete();
 
         return response()->json([
-            'message' => 'Gebruiker verwijderd'
+            'message' => "Gebruiker {$user->username} (ID: {$id}) verwijderd"
         ]);
     }
 }

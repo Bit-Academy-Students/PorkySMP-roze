@@ -43,8 +43,13 @@ Route::middleware('auth:sanctum')->group(function () {
         // Team aanmaken (Toegankelijk voor elke ingelogde gebruiker)
         Route::post('/', [TeamController::class, 'store']); 
         
+        // NIEUW: Team bijwerken (Leader only)
+        Route::put('/{team}', [TeamController::class, 'update']);
+        
+        // NIEUW: Team verwijderen (Leader only)
+        Route::delete('/{team}', [TeamController::class, 'destroy']);
+        
         // Team Leden Acties
-        // POST /api/teams/{team}/members/{user}/attach - Lid toevoegen/rol wijzigen
         Route::post('/{team}/members/{user}/attach', [TeamController::class, 'attachUser']); 
 
         // DELETE /api/teams/{team}/members/{user}/detach - Lid verwijderen
@@ -63,7 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->prefix('users')->group(function () {
         // index() is hierboven al gedefinieerd en toegankelijk voor iedereen.
         Route::get('/{user}', [UserController::class, 'show']); // Specifieke gebruiker OPHALEN (Admin ziet ALLES)
-        Route::put('/{user}', [UserController::class, 'update']); // Gebruiker bijwerken
+        Route::put('/{user}', [UserController::class, 'update']); // Gebruiker bijwerken (Naam/Rol)
         Route::delete('/{user}', [UserController::class, 'destroy']); // Gebruiker verwijderen
     });
 });

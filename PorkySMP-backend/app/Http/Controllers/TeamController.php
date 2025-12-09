@@ -58,6 +58,68 @@ class TeamController extends Controller
             'team' => $team->load('members') 
         ], 201);
     }
+    
+    /**
+     * Update een bestaand team.
+     * Alleen toegestaan voor de Leader van het team.
+     */
+    public function update(Request $request, Team $team)
+    {
+        $request->validate([
+            'team_name' => 'nullable|string|max:255|unique:teams,team_name,' . $team->id,
+            'description' => 'nullable|string',
+            'flag_url' => 'nullable|string',
+            'capital_coords' => 'nullable|string',
+        ]);
+
+        /** @var \App\Models\User $loggedInUser */
+        $loggedInUser = $request->user();
+        $loggedInUserRole = $this->getLoggedInUserRoleInTeam($team, $loggedInUser);
+
+        // Autoriteit Check: Alleen de Leader mag dit doen
+        if ($loggedInUserRole !== 'leader') {
+            return response()->json([
+                'message' => 'U moet de leider van het team zijn om de teamdetails te wijzigen.'
+            ], 403);
+        }
+
+        // Update de team details (alleen de meegegeven velden)
+        $team->update($request->only('team_name', 'description', 'flag_url', 'capital_coords'));
+
+        // FIX: Laad 'members' voor de Accessor
+        return response()->json([
+            'message' => 'Team details succesvol bijgewerkt.',
+            'team' => $team->load('members') 
+        ]);
+    }
+
+    /**
+     * Verwijder een team.
+     * Alleen toegestaan voor de Leader van het team.
+     */
+    public function destroy(Team $team, Request $request)
+    {
+        /** @var \App\Models\User $loggedInUser */
+        $loggedInUser = $request->user();
+        $loggedInUserRole = $this->getLoggedInUserRoleInTeam($team, $loggedInUser);
+
+        // Autoriteit Check: Alleen de Leader mag dit doen
+        if ($loggedInUserRole !== 'leader') {
+            return response()->json([
+                'message' => 'U moet de leider van het team zijn om het team te verwijderen.'
+            ], 403);
+        }
+        
+        $teamName = $team->team_name;
+        
+        // Verwijder het team (zal ook alle pivot records verwijderen door onDelete('cascade') in de migratie)
+        $team->delete();
+
+        return response()->json([
+            'message' => "Team '{$teamName}' succesvol verwijderd."
+        ]);
+    }
+
 
     /**
      * Voeg een gebruiker toe aan een team of update de rol van een bestaand lid.
