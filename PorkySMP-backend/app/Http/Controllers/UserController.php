@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash; // Hash toegevoegd
 use App\Models\User;
 
 class UserController extends Controller
@@ -23,6 +24,12 @@ class UserController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
+
+        // Valideer indien er een wachtwoord wordt meegegeven
+        if ($request->has('password')) {
+            // Nu werkt Hash::make() omdat de klasse is geïmporteerd
+            $request->merge(['password' => Hash::make($request->password)]);
+        }
 
         $user->update($request->all());
 

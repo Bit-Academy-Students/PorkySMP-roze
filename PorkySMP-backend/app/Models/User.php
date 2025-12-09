@@ -6,36 +6,61 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
-    // Vervang of breid uit
+    /**
+     * The attributes that are mass assignable.
+     * Nu aangepast naar 'username' (afhankelijk van uw database schema).
+     */
     protected $fillable = [
         'username',
         'email',
         'password',
-        'role'
     ];
 
+    /**
+     * De attributen die verborgen moeten worden tijdens serialisatie naar JSON.
+     * Verbergt alle gevraagde timestamps en gevoelige velden.
+     */
     protected $hidden = [
         'password',
         'remember_token',
+        'email_verified_at',
+        'created_at',
+        'updated_at',
     ];
 
+    /**
+     * The attributes that should be cast.
+     */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'password' => 'hashed',
     ];
-
-    // RELATIES
-    public function teams()
+    
+    /**
+     * De teams waar de gebruiker lid van is (via de pivot tabel 'user_teams').
+     */
+    public function teams(): BelongsToMany
     {
-        return $this->belongsToMany(Team::class, 'user_teams');
+        // Koppel User aan Team via de pivot tabel 'user_teams'
+        // Let op: Ik heb .using(UserTeam::class) weggelaten omdat het Pivot Model niet in de context is.
+        return $this->belongsToMany(Team::class, 'user_teams')
+                    ->withPivot('role');
     }
 
-    public function playerInfo()
+    /**
+     * Optionele helper om de rol van de gebruiker in een specifiek team op te vragen.
+     * @param Team $team
+     * @return string|null
+     */
+    public function getTeamRole(Team $team): ?string
     {
-        return $this->hasOne(PlayerInfo::class);
+        return $this->teams()->where('team_id', $team->id)->first()?->pivot->role;
     }
 }

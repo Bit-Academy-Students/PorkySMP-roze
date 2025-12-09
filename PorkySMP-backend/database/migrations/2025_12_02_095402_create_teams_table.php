@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('flag_url')->nullable();
             $table->string('capital_coords')->nullable();
             $table->text('description')->nullable();
-            $table->foreignId('leader_id')->nullable()->constrained('users')->onDelete('set null');
+            // leader_id verwijderd: de leider wordt nu bepaald door de rol in de user_teams pivot tabel.
             $table->timestamps();
         });
     }

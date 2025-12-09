@@ -15,7 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('team_id')->constrained('teams')->onDelete('cascade');
+            // Nieuwe kolom voor de rol binnen het team
+            $table->enum('role', ['leader', 'mod', 'member'])->default('member');
             $table->timestamps();
+
+            // Zorg ervoor dat een gebruiker maar één keer in een team zit
+            $table->unique(['user_id', 'team_id']);
         });
     }
 
