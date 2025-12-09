@@ -6,16 +6,32 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User; 
-// Zorg ervoor dat u dit bovenaan uw controller heeft staan om de User class te kunnen typen
 use Laravel\Sanctum\HasApiTokens; 
-
+use App\Models\PlayerInfo; 
 
 class AuthController extends Controller
 {
     /**
+     * Zorgt ervoor dat de PlayerInfo record bestaat voor de gebruiker en stelt 
+     * de first_login datum/tijd in als deze nog niet is ingesteld.
+     */
+    private function ensurePlayerInfoFirstLogin(User $user)
+    {
+        // Zoek de bestaande PlayerInfo record of maak een nieuwe instantie aan
+        $playerInfo = PlayerInfo::firstOrNew(['user_id' => $user->id]);
+
+        if (is_null($playerInfo->first_login)) {
+            // WIJZIGING: Gebruik now() in plaats van now()->toDateString() om de tijdcomponent mee te nemen
+            $playerInfo->first_login = now(); 
+        }
+        
+        $playerInfo->save();
+        
+        return $playerInfo;
+    }
+
+    /**
      * Registreer een nieuwe gebruiker.
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function register(Request $request)
     {
@@ -31,12 +47,13 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // De linter geeft hier meestal geen fout omdat $user direct een User is
+        $this->ensurePlayerInfoFirstLogin($user);
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Registratie succesvol',
-            'user' => $user,
+            'user' => $user->load('playerInfo'),
             'token' => $token,
             'token_type' => 'Bearer',
         ], 201);
@@ -44,8 +61,6 @@ class AuthController extends Controller
 
     /**
      * Log de gebruiker in en retourneer een Bearer token.
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function login(Request $request)
     {
@@ -54,23 +69,22 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        // Probeer de gebruiker te authenticeren
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
                 'message' => 'Onjuiste inloggegevens'
             ], 401);
         }
 
-        // ** DE LINTER FIX: Voeg DocBlock toe **
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
-        // Nu zal de linter de createToken() methode herkennen
+        $this->ensurePlayerInfoFirstLogin($user);
+        
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Ingelogd',
-            'user' => $user,
+            'user' => $user->load('playerInfo'),
             'token' => $token, 
             'token_type' => 'Bearer',
         ], 200);
@@ -78,16 +92,13 @@ class AuthController extends Controller
 
     /**
      * Log de gebruiker uit (revok de token).
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function logout(Request $request)
     {
-        // $request->user() is al correct getype-hint
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Succesvol uitgelogd en token ingetrokken'
-        ], 200);
+            'message' => 'Succesvol uitgelogd'
+        ]);
     }
 }

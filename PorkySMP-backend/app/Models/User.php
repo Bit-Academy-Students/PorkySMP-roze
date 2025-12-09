@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
@@ -15,31 +16,31 @@ class User extends Authenticatable
 
     /**
      * The attributes that are mass assignable.
-     * Nu aangepast naar 'username' (afhankelijk van uw database schema).
      */
     protected $fillable = [
         'username',
         'email',
         'password',
+        'role', // Zorg ervoor dat de rol indien nodig in te stellen is via de admin-route
     ];
 
     /**
      * De attributen die verborgen moeten worden tijdens serialisatie naar JSON.
-     * Verbergt alle gevraagde timestamps en gevoelige velden.
+     * Nu is 'role' toegevoegd om de algemene rol te verbergen voor normale users.
      */
     protected $hidden = [
         'password',
         'remember_token',
-        'email_verified_at',
         'created_at',
         'updated_at',
+        'email', // Blijft verborgen in alle gevallen tenzij Admin deze expliciet toont
+        'role', // Nu toegevoegd om de algemene rol te verbergen voor normale users
     ];
 
     /**
      * The attributes that should be cast.
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
     
@@ -48,19 +49,15 @@ class User extends Authenticatable
      */
     public function teams(): BelongsToMany
     {
-        // Koppel User aan Team via de pivot tabel 'user_teams'
-        // Let op: Ik heb .using(UserTeam::class) weggelaten omdat het Pivot Model niet in de context is.
         return $this->belongsToMany(Team::class, 'user_teams')
                     ->withPivot('role');
     }
 
     /**
-     * Optionele helper om de rol van de gebruiker in een specifiek team op te vragen.
-     * @param Team $team
-     * @return string|null
+     * De PlayerInfo van deze gebruiker (One-to-One).
      */
-    public function getTeamRole(Team $team): ?string
+    public function playerInfo(): HasOne
     {
-        return $this->teams()->where('team_id', $team->id)->first()?->pivot->role;
+        return $this->hasOne(PlayerInfo::class);
     }
 }

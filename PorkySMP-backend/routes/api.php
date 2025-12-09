@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\PlayerInfoController; // NIEUWE IMPORT
 
 /*
 |--------------------------------------------------------------------------
@@ -16,12 +17,10 @@ use App\Http\Controllers\TeamController;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Teams (Publieke Leesacties)
-Route::prefix('public')->group(function () {
-    Route::get('/teams', [TeamController::class, 'index']); // Iedereen mag alle teams zien
-    Route::get('/teams/{team}', [TeamController::class, 'show']); // Iedereen mag details van een team zien
-    Route::get('/teams/{team}/members', [TeamController::class, 'members']); // Iedereen mag de leden van een team zien
-});
+
+// Teams (Publieke Leesacties) - Nu direct onder /api/teams
+Route::get('/teams', [TeamController::class, 'index']); 
+Route::get('/teams/{team}', [TeamController::class, 'show']);
 
 
 /*
@@ -35,20 +34,35 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth (Uitloggen)
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Teambeheer (Toegankelijk voor elke ingelogde gebruiker)
-    Route::post('/teams', [TeamController::class, 'store']); // Team aanmaken
-    
-    // Team Leden Acties
-    Route::post('/teams/{team}/users/{user}', [TeamController::class, 'attachUser']); // Lid toevoegen/rol wijzigen (Autorisatie via Policy! Zie de uitleg hieronder.)
-    Route::delete('/teams/{team}/users/{user}', [TeamController::class, 'detachUser']); // Lid verwijderen (Autorisatie via Policy!)
-    
+    // --- Player Info Beheer ---
+    // POST /api/player-info - Maak/Update PlayerInfo voor ingelogde gebruiker
+    Route::post('/player-info', [PlayerInfoController::class, 'storeOrUpdate']);
+
+    // --- Team Management Routes ---
+    Route::prefix('teams')->group(function () {
+        // Team aanmaken (Toegankelijk voor elke ingelogde gebruiker)
+        Route::post('/', [TeamController::class, 'store']); 
+        
+        // Team Leden Acties
+        // POST /api/teams/{team}/members/{user}/attach - Lid toevoegen/rol wijzigen
+        Route::post('/{team}/members/{user}/attach', [TeamController::class, 'attachUser']); 
+
+        // DELETE /api/teams/{team}/members/{user}/detach - Lid verwijderen
+        Route::delete('/{team}/members/{user}/detach', [TeamController::class, 'detachUser']);
+    });
     
     // -----------------------------------------------------------
-    // GEBRUIKERS BEHEER (Alleen Admin)
+    // GEBRUIKERS LIJST (Toegankelijk voor alle ingelogde gebruikers, data wordt gefilterd)
+    // -----------------------------------------------------------
+    Route::get('/users', [UserController::class, 'index']); 
+
+    
+    // -----------------------------------------------------------
+    // GEBRUIKERS BEHEER (Alleen Admin - CRUD)
     // -----------------------------------------------------------
     Route::middleware('role:admin')->prefix('users')->group(function () {
-        Route::get('/', [UserController::class, 'index']); // Alle gebruikers ophalen
-        Route::get('/{user}', [UserController::class, 'show']); // Specifieke gebruiker ophalen
+        // index() is hierboven al gedefinieerd en toegankelijk voor iedereen.
+        Route::get('/{user}', [UserController::class, 'show']); // Specifieke gebruiker OPHALEN (Admin ziet ALLES)
         Route::put('/{user}', [UserController::class, 'update']); // Gebruiker bijwerken
         Route::delete('/{user}', [UserController::class, 'destroy']); // Gebruiker verwijderen
     });

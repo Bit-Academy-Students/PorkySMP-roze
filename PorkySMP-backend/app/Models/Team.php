@@ -5,16 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Casts\Attribute; // Belangrijk: Importeer dit
 
 class Team extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     * Pas deze array aan op basis van uw werkelijke kolommen.
-     */
     protected $fillable = [
         'team_name',
         'description',
@@ -22,14 +18,14 @@ class Team extends Model
         'capital_coords',
     ];
     
-    /**
-     * De attributen die verborgen moeten worden tijdens serialisatie naar JSON.
-     * Verbergt created_at en updated_at van het team object.
-     */
     protected $hidden = [
         'created_at',
         'updated_at',
     ];
+
+    // CRUCIAAL: Voeg 'leader' toe om ervoor te zorgen dat deze gecomputeerde property
+    // automatisch in de JSON-output wordt opgenomen.
+    protected $appends = ['leader']; 
 
     /**
      * De gebruikers die lid zijn van dit team (Many-to-Many).
@@ -41,10 +37,15 @@ class Team extends Model
     }
 
     /**
-     * De leider van dit team (gebruikt de 'leader' rol in de pivot tabel).
+     * De LEIDER als COMPUTED ATTRIBUTE (Accessor).
+     * Dit zoekt de leader in de reeds geladen members collectie.
+     * Het resultaat is een enkel User object of null.
      */
-    public function leader(): BelongsToMany
+    protected function leader(): Attribute
     {
-        return $this->members()->wherePivot('role', 'leader');
+        return Attribute::make(
+            // Zoek de leider in de reeds geladen 'members' collectie
+            get: fn () => $this->members->where('pivot.role', 'leader')->first(),
+        )->shouldCache();
     }
 }

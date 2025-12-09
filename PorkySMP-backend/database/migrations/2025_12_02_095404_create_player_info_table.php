@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->string('skin_url')->nullable();
-            $table->date('first_login')->nullable();
+            $table->dateTime('first_login')->nullable(); 
             $table->timestamps();
         });
     }

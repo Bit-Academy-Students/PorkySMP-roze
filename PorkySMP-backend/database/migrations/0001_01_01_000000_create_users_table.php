@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('username')->unique();
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             // Alleen 'user' en 'admin' als globale rollen
             $table->enum('role', ['user', 'admin'])->default('user');
