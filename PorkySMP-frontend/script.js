@@ -1,7 +1,9 @@
-// Gebruikers en teams opslaan in localStorage
-let users = JSON.parse(localStorage.getItem('users')) || [];
-let teams = JSON.parse(localStorage.getItem('teams')) || [];
+// Globale instellingen
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
+let apiToken = localStorage.getItem('apiToken') || null;
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+// Gebruiker cache om opzoeken van ID's bij username sneller te maken
+let userCache = []; 
 
 // DOM elementen
 const loginBtn = document.getElementById('loginBtn');
@@ -18,647 +20,646 @@ const dashboardSection = document.getElementById('dashboardSection');
 const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 
-const teamNameInput = document.getElementById('teamName');
-const createTeamBtn = document.getElementById('createTeamBtn');
-const teamSelect = document.getElementById('teamSelect');
-const inviteUsernameInput = document.getElementById('inviteUsername');
-const inviteBtn = document.getElementById('inviteBtn');
+const createTeamForm = document.getElementById('createTeamForm');
 const teamsList = document.getElementById('teamsList');
-const invitationsList = document.getElementById('invitationsList');
+// API Output element is verwijderd uit de HTML
+
+const manageMemberTeamSelect = document.getElementById('manageMemberTeamSelect');
+const manageMemberUsernameInput = document.getElementById('manageMemberUsername');
+const manageMemberRoleSelect = document.getElementById('manageMemberRole');
+const manageMemberForm = document.getElementById('manageMemberForm');
+const detachMemberBtn = document.getElementById('detachMemberBtn');
+
+// NIEUWE Player Info elementen
+const managePlayerInfoForm = document.getElementById('managePlayerInfoForm');
+const skinUrlInput = document.getElementById('skinUrl');
+
+// Modals
+const teamManagementModal = document.getElementById('teamManagementModal');
+const teamMembersModal = document.getElementById('teamMembersModal');
+const updateTeamForm = document.getElementById('updateTeamForm');
+const transferLeaderBtn = document.getElementById('transferLeaderBtn');
 
 const notification = document.getElementById('notification');
 
-// Initialisatie
-document.addEventListener('DOMContentLoaded', () => {
-    updateUI();
-    loadTeamsForUser();
-    loadInvitationsForUser();
-    updateTeamUI();
-});
+/**
+ * CRUCIALE FUNCTIE: Wrapper voor API-calls met autorisatie en foutafhandeling.
+ * @param {string} endpoint - Het API-pad (bijv. '/login' of '/teams/1').
+ * @param {string} method - HTTP methode (GET, POST, PUT, DELETE).
+ * @param {object} data - Data om te verzenden (voor POST/PUT).
+ * @returns {Promise<object|null>} De JSON-respons data of null bij een fout.
+ */
+async function apiCall(endpoint, method = 'GET', data = null) {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const headers = {
+        'Accept': 'application/json',
+    };
 
-// Event Listeners
-loginBtn.addEventListener('click', () => {
-    showSection(loginSection);
-    hideSection(registerSection);
-    hideSection(welcomeSection);
-});
-
-registerBtn.addEventListener('click', () => {
-    showSection(registerSection);
-    hideSection(loginSection);
-    hideSection(welcomeSection);
-});
-
-logoutBtn.addEventListener('click', logout);
-
-showRegister.addEventListener('click', () => {
-    showSection(registerSection);
-    hideSection(loginSection);
-});
-
-showLogin.addEventListener('click', () => {
-    showSection(loginSection);
-    hideSection(registerSection);
-});
-
-loginForm.addEventListener('submit', handleLogin);
-registerForm.addEventListener('submit', handleRegister);
-createTeamBtn.addEventListener('click', createTeam);
-inviteBtn.addEventListener('click', sendInvitation);
-
-// Functies
-function showSection(section) {
-    section.classList.remove('hidden');
-}
-
-function hideSection(section) {
-    section.classList.add('hidden');
-}
-
-function showNotification(message, type = 'info') {
-    // Verwijder eventuele bestaande notificaties
-    notification.classList.add('hidden');
-    
-    // Stel bericht en kleur in
-    notification.textContent = message;
-    
-    // Stel kleur in op basis van type
-    if (type === 'success') {
-        notification.classList.add('bg-green-600');
-        notification.classList.remove('bg-red-600', 'bg-blue-600');
-    } else if (type === 'error') {
-        notification.classList.add('bg-red-600');
-        notification.classList.remove('bg-green-600', 'bg-blue-600');
-    } else {
-        notification.classList.add('bg-blue-600');
-        notification.classList.remove('bg-green-600', 'bg-red-600');
+    if (apiToken) {
+        headers['Authorization'] = `Bearer ${apiToken}`;
     }
-    
-    // Toon notificatie met animatie
-    notification.classList.remove('hidden');
-    notification.classList.add('notification-show');
-    
-    // Verberg notificatie na 3 seconden
-    setTimeout(() => {
-        notification.classList.remove('notification-show');
-        notification.classList.add('notification-hide');
-        setTimeout(() => {
-            notification.classList.add('hidden');
-            notification.classList.remove('notification-hide');
-        }, 300);
-    }, 3000);
+
+    if (data && method !== 'GET') {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const config = {
+        method: method,
+        headers: headers,
+        body: data ? JSON.stringify(data) : null,
+    };
+
+    try {
+        const response = await fetch(url, config);
+        const responseText = await response.text();
+        const responseData = responseText ? JSON.parse(responseText) : {};
+        
+        if (!response.ok) {
+            const errorMessage = responseData.message || response.statusText;
+            showNotification(`Fout (${response.status}): ${errorMessage}`, 'error');
+            
+            if (response.status === 401 && endpoint !== '/login' && endpoint !== '/register') {
+                logoutUser(false); 
+            }
+            
+            throw new Error(errorMessage); 
+        }
+
+        if (method !== 'GET' && responseData.message) {
+            showNotification(responseData.message, 'success');
+        }
+
+        return responseData;
+
+    } catch (error) {
+        console.error('API Call Fout:', error);
+        if (error.message && !error.message.startsWith('Fout (')) {
+             showNotification(`Netwerkfout of JSON-parsingfout: ${error.message}`, 'error');
+        }
+        return null;
+    }
 }
 
-function handleLogin(e) {
-    e.preventDefault();
+// ----------------------------------------------------
+// AUTHENTICATIE
+// ----------------------------------------------------
+
+async function registerUser(event) {
+    event.preventDefault();
     
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    // Zoek gebruiker
-    const user = users.find(u => u.username === username && u.password === password);
-    
-    if (user) {
-        // Sla ingelogde gebruiker op
-        currentUser = user;
+    if (registerForm.password.value !== registerForm.password_confirmation.value) {
+        showNotification('Wachtwoorden komen niet overeen.', 'error');
+        return;
+    }
+
+    const data = {
+        username: registerForm.username.value,
+        email: registerForm.email.value,
+        password: registerForm.password.value,
+        password_confirmation: registerForm.password_confirmation.value
+    };
+
+    const result = await apiCall('/register', 'POST', data);
+
+    if (result && result.token) {
+        apiToken = result.token;
+        // API respons bevat user.playerInfo
+        currentUser = result.user; 
+        localStorage.setItem('apiToken', apiToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         
-        // Update UI
+        registerForm.reset();
         updateUI();
-        
-        // Toon dashboard
-        showSection(dashboardSection);
-        hideSection(loginSection);
-        
-        showNotification('Succesvol ingelogd!', 'success');
-    } else {
-        showNotification('Ongeldige gebruikersnaam of wachtwoord', 'error');
+        await refreshDashboard();
     }
 }
 
-function handleRegister(e) {
-    e.preventDefault();
-    
-    const username = document.getElementById('registerUsername').value;
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-    
-    // Validatie
-    if (password !== confirmPassword) {
-        showNotification('Wachtwoorden komen niet overeen', 'error');
-        return;
-    }
-    
-    if (users.find(u => u.username === username)) {
-        showNotification('Gebruikersnaam is al in gebruik', 'error');
-        return;
-    }
-    
-    if (users.find(u => u.email === email)) {
-        showNotification('E-mailadres is al in gebruik', 'error');
-        return;
-    }
-    
-    // Nieuwe gebruiker toevoegen
-    const newUser = {
-        id: generateId(),
-        username,
-        email,
-        password,
-        teams: [],
-        invitations: []
+async function loginUser(event) {
+    event.preventDefault();
+
+    const data = {
+        email: loginForm.email.value,
+        password: loginForm.password.value,
     };
-    
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    showNotification('Account succesvol aangemaakt! Je kunt nu inloggen.', 'success');
-    
-    // Ga naar inlogscherm
-    showSection(loginSection);
-    hideSection(registerSection);
-    
-    // Formulier resetten
-    registerForm.reset();
-}
 
-function logout() {
-    currentUser = null;
-    localStorage.removeItem('currentUser');
-    updateUI();
-    
-    showSection(welcomeSection);
-    hideSection(dashboardSection);
-    
-    showNotification('Succesvol uitgelogd', 'info');
-}
+    const result = await apiCall('/login', 'POST', data);
 
-function updateUI() {
-    if (currentUser) {
-        // Gebruiker is ingelogd
-        loginBtn.classList.add('hidden');
-        registerBtn.classList.add('hidden');
-        logoutBtn.classList.remove('hidden');
-        welcomeSection.classList.add('hidden');
-        dashboardSection.classList.remove('hidden');
-        loginSection.classList.add('hidden');
-        registerSection.classList.add('hidden');
-        
-        // Update team UI
-        updateTeamUI();
-    } else {
-        // Gebruiker is niet ingelogd
-        loginBtn.classList.remove('hidden');
-        registerBtn.classList.remove('hidden');
-        logoutBtn.classList.add('hidden');
-        welcomeSection.classList.remove('hidden');
-        dashboardSection.classList.add('hidden');
-        loginSection.classList.add('hidden');
-        registerSection.classList.add('hidden');
+    if (result && result.token) {
+        apiToken = result.token;
+        // API respons bevat user.playerInfo
+        currentUser = result.user;
+        localStorage.setItem('apiToken', apiToken);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        loginForm.reset();
+        updateUI();
+        await refreshDashboard();
     }
 }
 
-function generateId() {
-    return '_' + Math.random().toString(36).substr(2, 9);
+function logoutUser(callApi = true) {
+    if (callApi && apiToken) {
+        apiCall('/logout', 'POST'); 
+    }
+    
+    apiToken = null;
+    currentUser = null;
+    localStorage.removeItem('apiToken');
+    localStorage.removeItem('currentUser');
+    
+    updateUI(); 
+    showNotification('U bent succesvol uitgelogd.', 'info');
 }
 
-function createTeam() {
+// ----------------------------------------------------
+// DASHBOARD & DATA BEHEER
+// ----------------------------------------------------
+
+// Ophalen van alle teams (publieke route)
+async function fetchAllTeams() {
+    const result = await apiCall('/teams', 'GET');
+    return result || []; 
+}
+
+// Ophalen van alle gebruikers (voor ID lookup)
+async function fetchAllUsers() {
+    const result = await apiCall('/users', 'GET'); 
+    userCache = result || [];
+    return userCache;
+}
+
+/**
+ * Haalt de laatste data op en werkt het dashboard bij.
+ */
+async function refreshDashboard() {
+    if (!currentUser || !apiToken) {
+        updateUI();
+        return;
+    }
+    
+    // Zorg ervoor dat we de volledige gebruikerslijst hebben voor lookups
+    await fetchAllUsers();
+
+    // 1. Haal de volledige teamslijst op (met leden)
+    const allTeams = await fetchAllTeams();
+    
+    let userTeamsData = [];
+    if (allTeams) {
+        userTeamsData = allTeams.filter(team => 
+            team.members.some(member => member.id === currentUser.id)
+        ).map(team => {
+            const userMember = team.members.find(member => member.id === currentUser.id);
+            return {
+                ...team,
+                role: userMember ? userMember.pivot.role : 'member' 
+            };
+        });
+        
+        currentUser.teams = userTeamsData;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        displayTeams(currentUser.teams);
+        updateMemberManagementSelect(currentUser.teams);
+    } else {
+        currentUser.teams = [];
+        displayTeams([]);
+        updateMemberManagementSelect([]);
+    }
+    
+    document.getElementById('teamsCount').textContent = `${currentUser.teams.length} ${currentUser.teams.length === 1 ? 'team' : 'teams'}`;
+    
+    // NIEUW: Player Info velden vullen
+    // De API respons in login/register zorgt dat player_info meekomt
+    if (currentUser.player_info) {
+        skinUrlInput.value = currentUser.player_info.skin_url || '';
+    } else {
+        // Indien er nog geen record is, is de waarde leeg
+        skinUrlInput.value = '';
+    }
+    
+    updateUI(); 
+}
+
+/**
+ * Zoek een User ID op basis van de gebruikersnaam.
+ * @param {string} username 
+ * @returns {number|null} user ID
+ */
+function findUserIdByUsername(username) {
+    const user = userCache.find(u => u.username.toLowerCase() === username.toLowerCase());
+    return user ? user.id : null;
+}
+
+/**
+ * Vult de team selector in de sectie Ledenbeheer met teams waar de gebruiker leider/mod is.
+ */
+function updateMemberManagementSelect(teams) {
+    manageMemberTeamSelect.innerHTML = '<option value="">Selecteer Team (Alleen Teams waar u Leader/Mod bent)</option>';
+    if (!teams) return;
+
+    teams.forEach(team => {
+        // Alleen Leader en Mod mogen leden toevoegen/wijzigen/verwijderen
+        if (team.role === 'leader' || team.role === 'mod') {
+            manageMemberTeamSelect.innerHTML += `<option value="${team.id}" data-role="${team.role}">${team.team_name} (${team.role})</option>`;
+        }
+    });
+}
+
+function displayTeams(teams) {
+    teamsList.innerHTML = '';
+
+    if (teams.length === 0) {
+        teamsList.innerHTML = '<p class="text-gray-400">U bent nog lid van geen enkel team. Maak een team aan!</p>';
+        return;
+    }
+    
+    teams.forEach(team => {
+        const isManager = team.role === 'leader' || team.role === 'mod'; // Leader en Mod kunnen beheren/verlaten
+        const isLeader = team.role === 'leader';
+        
+        const teamElement = document.createElement('div');
+        teamElement.className = 'p-4 bg-gray-700 rounded-lg shadow-md mb-3 flex justify-between items-center';
+        teamElement.innerHTML = `
+            <div>
+                <h3 class="text-xl font-bold">${team.team_name}</h3>
+                <p class="text-sm text-gray-400">Rol: <span class="font-semibold text-yellow-300">${team.role.toUpperCase()}</span></p>
+                ${team.description ? `<p class="text-xs text-gray-500">${team.description}</p>` : ''}
+            </div>
+            <div class="space-x-2 flex items-center">
+                <button onclick="openTeamMembersModal(${team.id})" class="bg-gray-600 hover:bg-gray-700 px-3 py-1 text-sm rounded">Leden</button>
+                ${isLeader ? `<button onclick="openTeamManagementModal(${team.id})" class="bg-indigo-600 hover:bg-indigo-700 px-3 py-1 text-sm rounded">Beheer</button>` : ''}
+                <button onclick="leaveTeam(${team.id}, '${team.team_name}')" class="bg-yellow-500 hover:bg-yellow-600 px-3 py-1 text-sm rounded">${isLeader ? 'Ontbinden' : 'Verlaten'}</button>
+            </div>
+        `;
+        teamsList.appendChild(teamElement);
+    });
+}
+
+// ----------------------------------------------------
+// TEAM ACTIES
+// ----------------------------------------------------
+
+async function createTeam(event) {
+    event.preventDefault();
     if (!currentUser) return;
     
-    const teamName = teamNameInput.value.trim();
-    
+    const teamName = document.getElementById('teamName').value.trim();
     if (!teamName) {
         showNotification('Voer een teamnaam in', 'error');
         return;
     }
     
-    // Controleer of teamnaam al bestaat
-    if (teams.find(t => t.name === teamName)) {
-        showNotification('Teamnaam is al in gebruik', 'error');
-        return;
-    }
-    
-    // Nieuw team aanmaken
-    const newTeam = {
-        id: generateId(),
-        name: teamName,
-        owner: currentUser.id,
-        members: [currentUser.id],
-        invitations: []
+    const data = {
+        team_name: teamName,
+        description: document.getElementById('teamDescription').value.trim(),
+        flag_url: document.getElementById('teamFlagUrl').value.trim(),
+        capital_coords: document.getElementById('teamCapitalCoords').value.trim(),
     };
     
-    teams.push(newTeam);
-    localStorage.setItem('teams', JSON.stringify(teams));
+    const result = await apiCall('/teams', 'POST', data);
     
-    // Team toevoegen aan gebruiker
-    currentUser.teams.push(newTeam.id);
-    updateUser(currentUser);
-    
-    // UI bijwerken
-    teamNameInput.value = '';
-    loadTeamsForUser();
-    populateTeamSelect();
-    updateTeamUI();
-    
-    showNotification(`Team "${teamName}" succesvol aangemaakt! Je bent nu de eigenaar en kunt spelers uitnodigen.`, 'success');
+    if (result && result.team) {
+        createTeamForm.reset(); 
+        await refreshDashboard();
+    }
 }
 
-function sendInvitation() {
+async function leaveTeam(teamId, teamName) {
     if (!currentUser) return;
     
-    const teamId = teamSelect.value;
-    const username = inviteUsernameInput.value.trim();
+    const team = currentUser.teams.find(t => t.id === teamId);
+    if (!team) return;
     
-    if (!teamId) {
-        showNotification('Selecteer eerst een team', 'error');
+    const confirmationText = team.role === 'leader' 
+        ? `Weet je zeker dat je team "${teamName}" wilt ontbinden? Dit verwijdert het team voor iedereen.`
+        : `Weet je zeker dat je team "${teamName}" wilt verlaten?`;
+        
+    if (!confirm(confirmationText)) {
         return;
     }
     
-    if (!username) {
-        showNotification('Voer een gebruikersnaam in', 'error');
-        return;
-    }
-    
-    // Zoek doelgebruiker
-    const targetUser = users.find(u => u.username === username);
-    
-    if (!targetUser) {
-        showNotification('Gebruiker niet gevonden', 'error');
-        return;
-    }
-    
-    if (targetUser.id === currentUser.id) {
-        showNotification('Je kunt jezelf niet uitnodigen', 'error');
-        return;
-    }
-    
-    // Zoek team
-    const team = teams.find(t => t.id === teamId);
-    
-    if (!team) {
-        showNotification('Team niet gevonden', 'error');
-        return;
-    }
-    
-    // CONTROLE: Controleer of de huidige gebruiker de eigenaar is
-    if (team.owner !== currentUser.id) {
-        showNotification('Alleen de eigenaar van het team kan mensen uitnodigen', 'error');
-        return;
-    }
-    
-    // Controleer of gebruiker al lid is
-    if (team.members.includes(targetUser.id)) {
-        showNotification('Deze gebruiker is al lid van het team', 'error');
-        return;
-    }
-    
-    // Controleer of er al een uitnodiging is
-    if (team.invitations.includes(targetUser.id)) {
-        showNotification('Deze gebruiker heeft al een uitnodiging voor dit team', 'error');
-        return;
-    }
-    
-    // Uitnodiging toevoegen aan team
-    team.invitations.push(targetUser.id);
-    
-    // Uitnodiging toevoegen aan gebruiker
-    targetUser.invitations.push({
-        teamId: team.id,
-        teamName: team.name,
-        fromUserId: currentUser.id,
-        fromUsername: currentUser.username
-    });
-    
-    localStorage.setItem('teams', JSON.stringify(teams));
-    updateUser(targetUser);
-    
-    // UI bijwerken
-    inviteUsernameInput.value = '';
-    loadInvitationsForUser();
-    
-    showNotification(`Uitnodiging verzonden naar ${username}`, 'success');
-}
-
-function loadTeamsForUser() {
-    if (!currentUser) return;
-    
-    teamsList.innerHTML = '';
-    
-    if (currentUser.teams.length === 0) {
-        teamsList.innerHTML = '<p class="text-gray-400">Je bent nog geen lid van teams</p>';
-        return;
-    }
-    
-    // Toon teams waar de gebruiker lid van is
-    currentUser.teams.forEach(teamId => {
-        const team = teams.find(t => t.id === teamId);
-        if (team) {
-            const teamElement = document.createElement('div');
-            teamElement.className = 'team-card p-3 rounded mb-2';
-            
-            // Haal ledennamen op
-            const memberNames = team.members.map(memberId => {
-                const member = users.find(u => u.id === memberId);
-                return member ? member.username : 'Onbekend';
-            }).join(', ');
-            
-            // Tel het aantal leden
-            const memberCount = team.members.length;
-            
-            teamElement.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                        <h5 class="font-bold text-lg">${team.name}</h5>
-                        <p class="text-sm text-gray-300 mt-1">${memberCount} ${memberCount === 1 ? 'lid' : 'leden'}</p>
-                        <p class="text-xs text-gray-400 mt-1">Leden: ${memberNames}</p>
-                    </div>
-                    <div class="flex flex-col items-end ml-4">
-                        ${team.owner === currentUser.id ? 
-                            '<span class="bg-yellow-600 text-xs px-2 py-1 rounded mb-1 font-bold">EIGENAAR</span>' : 
-                            '<span class="bg-blue-600 text-xs px-2 py-1 rounded mb-1">LID</span>'
-                        }
-                        ${team.owner === currentUser.id ? 
-                            '<span class="text-xs text-green-400 font-bold">Uitnodigen mogelijk</span>' : 
-                            '<span class="text-xs text-gray-400">Geen uitnodigingsrechten</span>'
-                        }
-                    </div>
-                </div>
-            `;
-            
-            teamsList.appendChild(teamElement);
+    if (team.role === 'leader') {
+        // DELETE /api/teams/{team} (TeamController@destroy)
+        const result = await apiCall(`/teams/${teamId}`, 'DELETE');
+        if (result) {
+            await refreshDashboard();
         }
-    });
-    
-    // Vul team select voor uitnodigingen
-    populateTeamSelect();
-}
-
-function populateTeamSelect() {
-    if (!currentUser) return;
-    
-    teamSelect.innerHTML = '<option value="">Selecteer een team</option>';
-    
-    // Toon alleen teams waar de gebruiker eigenaar van is
-    currentUser.teams.forEach(teamId => {
-        const team = teams.find(t => t.id === teamId);
-        if (team && team.owner === currentUser.id) {
-            const option = document.createElement('option');
-            option.value = team.id;
-            option.textContent = `${team.name} (${team.members.length} leden)`;
-            teamSelect.appendChild(option);
-        }
-    });
-    
-    // Als er geen teams zijn waar de gebruiker eigenaar van is
-    if (teamSelect.options.length === 1) {
-        teamSelect.innerHTML = '<option value="">Je hebt geen teams waar je eigenaar van bent</option>';
-        inviteBtn.disabled = true;
     } else {
-        inviteBtn.disabled = false;
+        // DELETE /api/teams/{team}/members/{user}/detach
+        const result = await apiCall(`/teams/${teamId}/members/${currentUser.id}/detach`, 'DELETE');
+        if (result) {
+            await refreshDashboard();
+        }
     }
 }
 
-function loadInvitationsForUser() {
+// ----------------------------------------------------
+// LID TOEVOEGEN/WIJZIGEN/VERWIJDEREN
+// ----------------------------------------------------
+
+async function handleMemberManagement(event) {
+    event.preventDefault();
     if (!currentUser) return;
+
+    const teamId = manageMemberTeamSelect.value;
+    const username = manageMemberUsernameInput.value.trim();
+    const role = manageMemberRoleSelect.value;
     
-    invitationsList.innerHTML = '';
+    if (!teamId || !username) {
+        showNotification('Selecteer een team en voer een gebruikersnaam in.', 'error');
+        return;
+    }
+
+    const invitedUserId = findUserIdByUsername(username);
+
+    if (!invitedUserId) {
+        showNotification(`Gebruiker met naam "${username}" niet gevonden.`, 'error');
+        return;
+    }
+
+    if (event.submitter && event.submitter.id === 'detachMemberBtn') {
+        // Verwijderen
+        await detachMember(teamId, invitedUserId, username);
+    } else {
+        // Toevoegen/Rol wijzigen
+        const data = { role: role };
+        // POST /api/teams/{team}/members/{user}/attach
+        const result = await apiCall(`/teams/${teamId}/members/${invitedUserId}/attach`, 'POST', data);
+        
+        if (result) {
+            manageMemberUsernameInput.value = ''; 
+            await refreshDashboard();
+        }
+    }
+}
+
+async function detachMember(teamId, userId, username) {
+    if (!confirm(`Weet je zeker dat je lid ${username} wilt verwijderen uit het team?`)) {
+        return;
+    }
+    // DELETE /api/teams/{team}/members/{user}/detach
+    const result = await apiCall(`/teams/${teamId}/members/${userId}/detach`, 'DELETE');
+
+    if (result) {
+        manageMemberUsernameInput.value = ''; 
+        await refreshDashboard();
+    }
+}
+
+// ----------------------------------------------------
+// PLAYER INFO BEHEER (NIEUW)
+// ----------------------------------------------------
+
+async function handlePlayerInfoManagement(event) {
+    event.preventDefault();
+    if (!currentUser) return;
+
+    const data = {
+        skin_url: skinUrlInput.value.trim(),
+    };
+
+    // POST /api/player-info (PlayerInfoController@storeOrUpdate)
+    const result = await apiCall('/player-info', 'POST', data);
+
+    if (result && result.user) {
+        // Update de currentUser met de nieuwe data (inclusief bijgewerkte player_info)
+        currentUser = result.user;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Refresh de UI
+        await refreshDashboard(); 
+        showNotification('Player Info succesvol opgeslagen.', 'success');
+    }
+}
+
+
+// ----------------------------------------------------
+// MODAL FUNCTIES
+// ----------------------------------------------------
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+}
+window.closeModal = closeModal; 
+
+/**
+ * Opent de Team Beheer modal en laadt de data.
+ */
+async function openTeamManagementModal(teamId) {
+    const team = currentUser.teams.find(t => t.id === teamId);
+    if (!team || team.role !== 'leader') {
+        showNotification('U bent geen leider van dit team en mag het niet beheren.', 'error');
+        return;
+    }
+
+    document.getElementById('modalTeamName').textContent = team.team_name;
+    document.getElementById('updateTeamId').value = team.id;
+    document.getElementById('updateTeamName').value = team.team_name;
+    document.getElementById('updateTeamDescription').value = team.description || '';
+    document.getElementById('updateTeamFlagUrl').value = team.flag_url || '';
+    document.getElementById('updateTeamCapitalCoords').value = team.capital_coords || '';
+    document.getElementById('transferLeaderUsername').value = ''; 
     
-    if (currentUser.invitations.length === 0) {
-        invitationsList.innerHTML = '<p class="text-gray-400">Geen uitnodigingen</p>';
+    teamManagementModal.classList.remove('hidden');
+}
+window.openTeamManagementModal = openTeamManagementModal;
+
+/**
+ * Verwerkt de Team Update (PUT /api/teams/{team}).
+ */
+async function updateTeam(event) {
+    event.preventDefault();
+    const teamId = document.getElementById('updateTeamId').value;
+
+    const data = {
+        team_name: document.getElementById('updateTeamName').value.trim(),
+        description: document.getElementById('updateTeamDescription').value.trim(),
+        flag_url: document.getElementById('updateTeamFlagUrl').value.trim(),
+        capital_coords: document.getElementById('updateTeamCapitalCoords').value.trim(),
+    };
+
+    // PUT /api/teams/{team}
+    const result = await apiCall(`/teams/${teamId}`, 'PUT', data);
+
+    if (result) {
+        closeModal('teamManagementModal');
+        await refreshDashboard();
+    }
+}
+
+/**
+ * Verwerkt de Leiderschap Overdracht.
+ */
+async function transferTeamLeadership() {
+    const teamId = document.getElementById('updateTeamId').value;
+    const newLeaderUsername = document.getElementById('transferLeaderUsername').value.trim();
+
+    if (!newLeaderUsername) {
+        showNotification('Voer de gebruikersnaam van de nieuwe leider in.', 'error');
+        return;
+    }
+
+    const newLeaderId = findUserIdByUsername(newLeaderUsername);
+    if (!newLeaderId) {
+        showNotification(`Gebruiker met naam "${newLeaderUsername}" niet gevonden.`, 'error');
         return;
     }
     
-    currentUser.invitations.forEach((invitation, index) => {
-        const invitationElement = document.createElement('div');
-        invitationElement.className = 'invitation-card p-3 rounded mb-2 flex justify-between items-center';
+    // Controleer of de nieuwe leider al lid is van het team (dit is vereist door de API)
+    const team = currentUser.teams.find(t => t.id == teamId);
+    const isMember = team.members.some(member => member.id === newLeaderId);
+    if (!isMember) {
+        showNotification(`Gebruiker ${newLeaderUsername} moet eerst lid zijn van het team.`, 'error');
+        return;
+    }
+    
+    if (!confirm(`Weet u zeker dat u het leiderschap van dit team wilt overdragen aan ${newLeaderUsername}?`)) {
+        return;
+    }
+
+    // POST /api/teams/{team}/members/{user}/attach met role: 'leader'
+    const result = await apiCall(`/teams/${teamId}/members/${newLeaderId}/attach`, 'POST', { role: 'leader' });
+
+    if (result) {
+        showNotification(`Leiderschap succesvol overgedragen aan ${newLeaderUsername}. U bent nu moderator.`, 'success');
+        closeModal('teamManagementModal');
+        await refreshDashboard();
+    }
+}
+
+
+/**
+ * Opent de Leden modal en laadt de ledenlijst.
+ */
+async function openTeamMembersModal(teamId) {
+    const team = currentUser.teams.find(t => t.id === teamId);
+    
+    const freshTeamData = await apiCall(`/teams/${teamId}`, 'GET');
+
+    if (!freshTeamData) return;
+
+    document.getElementById('membersModalTeamName').textContent = freshTeamData.team_name;
+    const membersListDiv = document.getElementById('membersList');
+    membersListDiv.innerHTML = '';
+    
+    freshTeamData.members.sort((a, b) => {
+        // Sorteer op rol: Leader eerst, dan Mod, dan Member
+        const roleOrder = { leader: 1, mod: 2, member: 3 };
+        return roleOrder[a.pivot.role] - roleOrder[b.pivot.role];
+    });
+
+    freshTeamData.members.forEach(member => {
+        const memberElement = document.createElement('div');
+        memberElement.className = 'p-3 bg-gray-700 rounded-lg flex justify-between items-center';
         
-        invitationElement.innerHTML = `
-            <div class="flex-1">
-                <h5 class="font-bold">Uitnodiging voor: ${invitation.teamName}</h5>
-                <p class="text-sm text-gray-300">Van: ${invitation.fromUsername}</p>
+        const isSelf = member.id === currentUser.id;
+        
+        memberElement.innerHTML = `
+            <div>
+                <span class="font-bold">${member.username} ${isSelf ? '(Jij)' : ''}</span>
+                <span class="text-sm text-yellow-400 ml-2">(${member.pivot.role.toUpperCase()})</span>
             </div>
-            <div class="flex space-x-2 ml-4">
-                <button class="accept-invitation bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-sm font-bold" data-index="${index}">Accepteren</button>
-                <button class="decline-invitation bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-sm" data-index="${index}">Weigeren</button>
-            </div>
+            ${freshTeamData.leader && member.id === freshTeamData.leader.id ? '<span class="text-xs text-green-400">LEIDER</span>' : ''}
         `;
-        
-        invitationsList.appendChild(invitationElement);
+        membersListDiv.appendChild(memberElement);
     });
+
+    teamMembersModal.classList.remove('hidden');
+}
+window.openTeamMembersModal = openTeamMembersModal;
+
+
+// ----------------------------------------------------
+// UI FUNCTIES
+// ----------------------------------------------------
+
+function updateUI() {
+    const isLoggedIn = !!apiToken && !!currentUser;
     
-    // Event listeners voor accepteren/weigeren knoppen
-    document.querySelectorAll('.accept-invitation').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const index = e.target.getAttribute('data-index');
-            acceptInvitation(index);
-        });
+    loginBtn.classList.toggle('hidden', isLoggedIn);
+    registerBtn.classList.toggle('hidden', isLoggedIn);
+    logoutBtn.classList.toggle('hidden', !isLoggedIn);
+    
+    welcomeSection.classList.toggle('hidden', isLoggedIn);
+    loginSection.classList.add('hidden');
+    registerSection.classList.add('hidden');
+    dashboardSection.classList.toggle('hidden', !isLoggedIn);
+    
+    if (isLoggedIn) {
+        document.getElementById('dashboardUser').textContent = currentUser.username;
+    } else {
+        welcomeSection.classList.remove('hidden');
+    }
+}
+
+function showNotification(message, type = 'info') {
+    notification.textContent = message;
+    notification.className = `fixed bottom-4 right-4 z-50 p-3 rounded shadow-lg transition-opacity duration-300`;
+    
+    if (type === 'error') {
+        notification.classList.add('bg-red-700', 'text-white');
+    } else if (type === 'success') {
+        notification.classList.add('bg-green-600', 'text-white');
+    } else {
+        notification.classList.add('bg-blue-600', 'text-white');
+    }
+    
+    notification.style.opacity = '1';
+
+    setTimeout(() => {
+        notification.style.opacity = '0';
+    }, 5000);
+}
+
+
+// ----------------------------------------------------
+// INITIALISATIE
+// ----------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Navigatie knoppen
+    loginBtn.addEventListener('click', () => {
+        welcomeSection.classList.add('hidden');
+        registerSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
     });
-    
-    document.querySelectorAll('.decline-invitation').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const index = e.target.getAttribute('data-index');
-            declineInvitation(index);
-        });
+
+    registerBtn.addEventListener('click', () => {
+        welcomeSection.classList.add('hidden');
+        loginSection.classList.add('hidden');
+        registerSection.classList.remove('hidden');
     });
-}
 
-function acceptInvitation(index) {
-    if (!currentUser || !currentUser.invitations[index]) return;
-    
-    const invitation = currentUser.invitations[index];
-    const team = teams.find(t => t.id === invitation.teamId);
-    
-    if (!team) {
-        showNotification('Team niet gevonden', 'error');
-        return;
-    }
-    
-    // Voeg gebruiker toe aan team
-    team.members.push(currentUser.id);
-    
-    // Verwijder uitnodiging van team
-    const invitationIndex = team.invitations.indexOf(currentUser.id);
-    if (invitationIndex > -1) {
-        team.invitations.splice(invitationIndex, 1);
-    }
-    
-    // Voeg team toe aan gebruiker
-    currentUser.teams.push(team.id);
-    
-    // Verwijder uitnodiging van gebruiker
-    currentUser.invitations.splice(index, 1);
-    
-    // Opslaan
-    localStorage.setItem('teams', JSON.stringify(teams));
-    updateUser(currentUser);
-    
-    // UI bijwerken
-    loadTeamsForUser();
-    loadInvitationsForUser();
-    updateTeamUI();
-    
-    showNotification(`Je bent nu lid van team "${team.name}"`, 'success');
-}
-
-function declineInvitation(index) {
-    if (!currentUser || !currentUser.invitations[index]) return;
-    
-    const invitation = currentUser.invitations[index];
-    const team = teams.find(t => t.id === invitation.teamId);
-    
-    if (team) {
-        // Verwijder uitnodiging van team
-        const invitationIndex = team.invitations.indexOf(currentUser.id);
-        if (invitationIndex > -1) {
-            team.invitations.splice(invitationIndex, 1);
-        }
-        
-        localStorage.setItem('teams', JSON.stringify(teams));
-    }
-    
-    // Verwijder uitnodiging van gebruiker
-    currentUser.invitations.splice(index, 1);
-    updateUser(currentUser);
-    
-    // UI bijwerken
-    loadInvitationsForUser();
-    
-    showNotification('Uitnodiging geweigerd', 'info');
-}
-
-function updateUser(user) {
-    const userIndex = users.findIndex(u => u.id === user.id);
-    if (userIndex > -1) {
-        users[userIndex] = user;
-        localStorage.setItem('users', JSON.stringify(users));
-        
-        // Update currentUser als het dezelfde gebruiker is
-        if (currentUser && currentUser.id === user.id) {
-            currentUser = user;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        }
-    }
-}
-
-// Helper functies voor team-eigenaarschap
-function isTeamOwner(teamId) {
-    if (!currentUser) return false;
-    
-    const team = teams.find(t => t.id === teamId);
-    return team && team.owner === currentUser.id;
-}
-
-function getTeamsOwnedByUser() {
-    if (!currentUser) return [];
-    
-    return teams.filter(team => team.owner === currentUser.id);
-}
-
-function updateTeamUI() {
-    if (!currentUser) return;
-    
-    const ownedTeams = getTeamsOwnedByUser();
-    const noTeamsMessage = document.getElementById('noTeamsMessage');
-    const inviteControls = document.getElementById('inviteControls');
-    
-    if (noTeamsMessage && inviteControls) {
-        if (ownedTeams.length === 0) {
-            noTeamsMessage.classList.remove('hidden');
-            inviteControls.classList.add('hidden');
-        } else {
-            noTeamsMessage.classList.add('hidden');
-            inviteControls.classList.remove('hidden');
-        }
-    }
-}
-
-// Voeg een functie toe om een team te verlaten (voor niet-eigenaars)
-function leaveTeam(teamId) {
-    if (!currentUser) return;
-    
-    const team = teams.find(t => t.id === teamId);
-    
-    if (!team) {
-        showNotification('Team niet gevonden', 'error');
-        return;
-    }
-    
-    // Controleer of de gebruiker de eigenaar is
-    if (team.owner === currentUser.id) {
-        showNotification('Eigenaars kunnen hun team niet verlaten. Verwijder het team of geef het eigendom eerst over.', 'error');
-        return;
-    }
-    
-    // Verwijder gebruiker uit team
-    const memberIndex = team.members.indexOf(currentUser.id);
-    if (memberIndex > -1) {
-        team.members.splice(memberIndex, 1);
-    }
-    
-    // Verwijder team uit gebruiker
-    const teamIndex = currentUser.teams.indexOf(teamId);
-    if (teamIndex > -1) {
-        currentUser.teams.splice(teamIndex, 1);
-    }
-    
-    // Opslaan
-    localStorage.setItem('teams', JSON.stringify(teams));
-    updateUser(currentUser);
-    
-    // UI bijwerken
-    loadTeamsForUser();
-    updateTeamUI();
-    
-    showNotification(`Je hebt team "${team.name}" verlaten`, 'info');
-}
-
-// Functie om een team te verwijderen (alleen voor eigenaars)
-function deleteTeam(teamId) {
-    if (!currentUser) return;
-    
-    const team = teams.find(t => t.id === teamId);
-    
-    if (!team) {
-        showNotification('Team niet gevonden', 'error');
-        return;
-    }
-    
-    // Controleer of de gebruiker de eigenaar is
-    if (team.owner !== currentUser.id) {
-        showNotification('Alleen de eigenaar kan een team verwijderen', 'error');
-        return;
-    }
-    
-    // Bevestiging vragen
-    if (!confirm(`Weet je zeker dat je team "${team.name}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`)) {
-        return;
-    }
-    
-    // Verwijder team uit alle leden
-    team.members.forEach(memberId => {
-        const member = users.find(u => u.id === memberId);
-        if (member) {
-            const teamIndex = member.teams.indexOf(teamId);
-            if (teamIndex > -1) {
-                member.teams.splice(teamIndex, 1);
-                updateUser(member);
-            }
-        }
+    showRegister.addEventListener('click', () => {
+        loginSection.classList.add('hidden');
+        registerSection.classList.remove('hidden');
     });
+
+    showLogin.addEventListener('click', () => {
+        registerSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
+    });
+
+    // Formulier en actie knoppen
+    loginForm.addEventListener('submit', loginUser);
+    registerForm.addEventListener('submit', registerUser);
+    logoutBtn.addEventListener('click', () => logoutUser(true)); 
+
+    // Nieuwe acties
+    createTeamForm.addEventListener('submit', createTeam); 
+    manageMemberForm.addEventListener('submit', handleMemberManagement); 
+    // De knop om lid te verwijderen staat in manageMemberForm, maar we gebruiken event.submitter.id om te bepalen welke actie wordt uitgevoerd in handleMemberManagement.
+    // detachMemberBtn.addEventListener('click', detachMember); // Is niet nodig door handleMemberManagement
+    updateTeamForm.addEventListener('submit', updateTeam); 
+    transferLeaderBtn.addEventListener('click', transferTeamLeadership); 
     
-    // Verwijder team uit teams array
-    const teamIndex = teams.findIndex(t => t.id === teamId);
-    if (teamIndex > -1) {
-        teams.splice(teamIndex, 1);
+    // NIEUW: Player Info
+    managePlayerInfoForm.addEventListener('submit', handlePlayerInfoManagement);
+
+
+    // Initialisatie bij laden van de pagina
+    updateUI();
+    if (apiToken && currentUser) {
+        refreshDashboard();
     }
-    
-    // Opslaan
-    localStorage.setItem('teams', JSON.stringify(teams));
-    
-    // UI bijwerken
-    loadTeamsForUser();
-    updateTeamUI();
-    
-    showNotification(`Team "${team.name}" is verwijderd`, 'success');
-}
+});
