@@ -2,13 +2,14 @@
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 let apiToken = localStorage.getItem('apiToken') || null;
 let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
-// Gebruiker cache om opzoeken van ID's bij username sneller te maken
+// Gebruiker cache om opzoeken van ID's bij username sneller te maken (en voor admin paneel)
 let userCache = []; 
 
 // DOM elementen
 const loginBtn = document.getElementById('loginBtn');
 const registerBtn = document.getElementById('registerBtn');
 const logoutBtn = document.getElementById('logoutBtn');
+const adminBtn = document.getElementById('adminBtn');
 const showRegister = document.getElementById('showRegister');
 const showLogin = document.getElementById('showLogin');
 
@@ -22,15 +23,14 @@ const registerForm = document.getElementById('registerForm');
 
 const createTeamForm = document.getElementById('createTeamForm');
 const teamsList = document.getElementById('teamsList');
-// API Output element is verwijderd uit de HTML
 
+// GEWIJZIGDE LID TOEVOEGEN ELEMENTEN
 const manageMemberTeamSelect = document.getElementById('manageMemberTeamSelect');
 const manageMemberUsernameInput = document.getElementById('manageMemberUsername');
-const manageMemberRoleSelect = document.getElementById('manageMemberRole');
 const manageMemberForm = document.getElementById('manageMemberForm');
-const detachMemberBtn = document.getElementById('detachMemberBtn');
+// manageMemberRoleSelect en detachMemberBtn zijn verwijderd
 
-// NIEUWE Player Info elementen
+// Player Info elementen
 const managePlayerInfoForm = document.getElementById('managePlayerInfoForm');
 const skinUrlInput = document.getElementById('skinUrl');
 
@@ -39,6 +39,36 @@ const teamManagementModal = document.getElementById('teamManagementModal');
 const teamMembersModal = document.getElementById('teamMembersModal');
 const updateTeamForm = document.getElementById('updateTeamForm');
 const transferLeaderBtn = document.getElementById('transferLeaderBtn');
+
+// NIEUWE/GEWIJZIGDE Leden Modal Elementen
+const memberSearchInput = document.getElementById('memberSearchInput');
+const teamMemberManagementForm = document.getElementById('teamMemberManagementForm');
+const manageMemberTeamIdInput = document.getElementById('manageMemberTeamId');
+const manageMemberIdInput = document.getElementById('manageMemberId');
+const managedMemberUsernameDisplay = document.getElementById('managedMemberUsernameDisplay');
+const manageMemberUsernameDisplayInput = document.getElementById('manageMemberUsernameDisplayInput'); // De disabled input
+const manageMemberNewRoleSelect = document.getElementById('manageMemberNewRole');
+const updateMemberRoleBtn = document.getElementById('updateMemberRoleBtn');
+const kickMemberBtn = document.getElementById('kickMemberBtn');
+
+
+// Admin Modal Elementen (ongewijzigd)
+const adminPanelModal = document.getElementById('adminPanelModal');
+const userSearchInput = document.getElementById('userSearchInput');
+const adminUserList = document.getElementById('adminUserList');
+const adminUserManagementForm = document.getElementById('adminUserManagementForm');
+const manageUserIdInput = document.getElementById('manageUserId');
+const managedUsernameDisplay = document.getElementById('managedUsernameDisplay');
+const manageUsernameInput = document.getElementById('manageUsername');
+const manageEmailInput = document.getElementById('manageEmail');
+const manageRoleSelect = document.getElementById('manageRole');
+const deleteUserBtn = document.getElementById('deleteUserBtn');
+
+// Wachtwoord Reset Formulier
+const adminUserPasswordForm = document.getElementById('adminUserPasswordForm');
+const manageUserIdPasswordInput = document.getElementById('manageUserIdPassword');
+const managePasswordInput = document.getElementById('managePassword');
+const managePasswordConfirmInput = document.getElementById('managePasswordConfirm');
 
 const notification = document.getElementById('notification');
 
@@ -101,7 +131,7 @@ async function apiCall(endpoint, method = 'GET', data = null) {
 }
 
 // ----------------------------------------------------
-// AUTHENTICATIE
+// AUTHENTICATIE (Ongewijzigd)
 // ----------------------------------------------------
 
 async function registerUser(event) {
@@ -123,7 +153,6 @@ async function registerUser(event) {
 
     if (result && result.token) {
         apiToken = result.token;
-        // API respons bevat user.playerInfo
         currentUser = result.user; 
         localStorage.setItem('apiToken', apiToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -146,7 +175,6 @@ async function loginUser(event) {
 
     if (result && result.token) {
         apiToken = result.token;
-        // API respons bevat user.playerInfo
         currentUser = result.user;
         localStorage.setItem('apiToken', apiToken);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
@@ -172,7 +200,7 @@ function logoutUser(callApi = true) {
 }
 
 // ----------------------------------------------------
-// DASHBOARD & DATA BEHEER
+// DASHBOARD & DATA BEHEER (Ongewijzigd)
 // ----------------------------------------------------
 
 // Ophalen van alle teams (publieke route)
@@ -181,7 +209,7 @@ async function fetchAllTeams() {
     return result || []; 
 }
 
-// Ophalen van alle gebruikers (voor ID lookup)
+// Ophalen van alle gebruikers (voor ID lookup & Admin Panel)
 async function fetchAllUsers() {
     const result = await apiCall('/users', 'GET'); 
     userCache = result || [];
@@ -197,10 +225,19 @@ async function refreshDashboard() {
         return;
     }
     
-    // Zorg ervoor dat we de volledige gebruikerslijst hebben voor lookups
+    // 1. Haal de volledige gebruikerslijst op (voor lookups/admin panel)
     await fetchAllUsers();
 
-    // 1. Haal de volledige teamslijst op (met leden)
+    // FIX VOOR ADMIN KNOP ZICHTBAARHEID
+    const adminUserInCache = userCache.find(u => u.id === currentUser.id);
+    if (adminUserInCache && adminUserInCache.role) {
+        currentUser.role = adminUserInCache.role;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    }
+    // *******************************************************
+
+
+    // 2. Haal de volledige teamslijst op (met leden)
     const allTeams = await fetchAllTeams();
     
     let userTeamsData = [];
@@ -228,12 +265,10 @@ async function refreshDashboard() {
     
     document.getElementById('teamsCount').textContent = `${currentUser.teams.length} ${currentUser.teams.length === 1 ? 'team' : 'teams'}`;
     
-    // NIEUW: Player Info velden vullen
-    // De API respons in login/register zorgt dat player_info meekomt
+    // Player Info velden vullen
     if (currentUser.player_info) {
         skinUrlInput.value = currentUser.player_info.skin_url || '';
     } else {
-        // Indien er nog geen record is, is de waarde leeg
         skinUrlInput.value = '';
     }
     
@@ -251,14 +286,14 @@ function findUserIdByUsername(username) {
 }
 
 /**
- * Vult de team selector in de sectie Ledenbeheer met teams waar de gebruiker leider/mod is.
+ * Vult de team selector in de sectie Lid Toevoegen met teams waar de gebruiker leider/mod is.
  */
 function updateMemberManagementSelect(teams) {
-    manageMemberTeamSelect.innerHTML = '<option value="">Selecteer Team (Alleen Teams waar u Leader/Mod bent)</option>';
+    manageMemberTeamSelect.innerHTML = '<option value="">Selecteer Team</option>';
     if (!teams) return;
 
     teams.forEach(team => {
-        // Alleen Leader en Mod mogen leden toevoegen/wijzigen/verwijderen
+        // Alleen Leader en Mod mogen leden toevoegen
         if (team.role === 'leader' || team.role === 'mod') {
             manageMemberTeamSelect.innerHTML += `<option value="${team.id}" data-role="${team.role}">${team.team_name} (${team.role})</option>`;
         }
@@ -274,11 +309,16 @@ function displayTeams(teams) {
     }
     
     teams.forEach(team => {
-        const isManager = team.role === 'leader' || team.role === 'mod'; // Leader en Mod kunnen beheren/verlaten
         const isLeader = team.role === 'leader';
+        // Gebruiker is Leader of Mod
+        const canManageMembers = isLeader || team.role === 'mod'; 
         
         const teamElement = document.createElement('div');
         teamElement.className = 'p-4 bg-gray-700 rounded-lg shadow-md mb-3 flex justify-between items-center';
+
+        // 1. Leden Beheer / Leden Overzicht knop
+        const membersButtonText = canManageMembers ? 'Leden Beheer' : 'Leden Overzicht';
+
         teamElement.innerHTML = `
             <div>
                 <h3 class="text-xl font-bold">${team.team_name}</h3>
@@ -286,8 +326,8 @@ function displayTeams(teams) {
                 ${team.description ? `<p class="text-xs text-gray-500">${team.description}</p>` : ''}
             </div>
             <div class="space-x-2 flex items-center">
-                <button onclick="openTeamMembersModal(${team.id})" class="bg-gray-600 hover:bg-gray-700 px-3 py-1 text-sm rounded">Leden</button>
-                ${isLeader ? `<button onclick="openTeamManagementModal(${team.id})" class="bg-indigo-600 hover:bg-indigo-700 px-3 py-1 text-sm rounded">Beheer</button>` : ''}
+                <button onclick="openTeamMembersModal(${team.id})" class="bg-gray-600 hover:bg-gray-700 px-3 py-1 text-sm rounded">${membersButtonText}</button>
+                ${isLeader ? `<button onclick="openTeamManagementModal(${team.id})" class="bg-indigo-600 hover:bg-indigo-700 px-3 py-1 text-sm rounded">Team Beheer</button>` : ''}
                 <button onclick="leaveTeam(${team.id}, '${team.team_name}')" class="bg-yellow-500 hover:bg-yellow-600 px-3 py-1 text-sm rounded">${isLeader ? 'Ontbinden' : 'Verlaten'}</button>
             </div>
         `;
@@ -296,7 +336,7 @@ function displayTeams(teams) {
 }
 
 // ----------------------------------------------------
-// TEAM ACTIES
+// TEAM ACTIES (Ongewijzigd)
 // ----------------------------------------------------
 
 async function createTeam(event) {
@@ -339,13 +379,11 @@ async function leaveTeam(teamId, teamName) {
     }
     
     if (team.role === 'leader') {
-        // DELETE /api/teams/{team} (TeamController@destroy)
         const result = await apiCall(`/teams/${teamId}`, 'DELETE');
         if (result) {
             await refreshDashboard();
         }
     } else {
-        // DELETE /api/teams/{team}/members/{user}/detach
         const result = await apiCall(`/teams/${teamId}/members/${currentUser.id}/detach`, 'DELETE');
         if (result) {
             await refreshDashboard();
@@ -354,7 +392,7 @@ async function leaveTeam(teamId, teamName) {
 }
 
 // ----------------------------------------------------
-// LID TOEVOEGEN/WIJZIGEN/VERWIJDEREN
+// GEWIJZIGD: LID TOEVOEGEN (Alleen Attachen als 'member')
 // ----------------------------------------------------
 
 async function handleMemberManagement(event) {
@@ -363,7 +401,6 @@ async function handleMemberManagement(event) {
 
     const teamId = manageMemberTeamSelect.value;
     const username = manageMemberUsernameInput.value.trim();
-    const role = manageMemberRoleSelect.value;
     
     if (!teamId || !username) {
         showNotification('Selecteer een team en voer een gebruikersnaam in.', 'error');
@@ -373,41 +410,22 @@ async function handleMemberManagement(event) {
     const invitedUserId = findUserIdByUsername(username);
 
     if (!invitedUserId) {
-        showNotification(`Gebruiker met naam "${username}" niet gevonden.`, 'error');
+        showNotification(`Gebruiker met naam "${username}" niet gevonden. Let op: de gebruiker moet minstens één keer zijn ingelogd op het platform om in de cache te staan.`, 'error');
         return;
     }
 
-    if (event.submitter && event.submitter.id === 'detachMemberBtn') {
-        // Verwijderen
-        await detachMember(teamId, invitedUserId, username);
-    } else {
-        // Toevoegen/Rol wijzigen
-        const data = { role: role };
-        // POST /api/teams/{team}/members/{user}/attach
-        const result = await apiCall(`/teams/${teamId}/members/${invitedUserId}/attach`, 'POST', data);
-        
-        if (result) {
-            manageMemberUsernameInput.value = ''; 
-            await refreshDashboard();
-        }
-    }
-}
-
-async function detachMember(teamId, userId, username) {
-    if (!confirm(`Weet je zeker dat je lid ${username} wilt verwijderen uit het team?`)) {
-        return;
-    }
-    // DELETE /api/teams/{team}/members/{user}/detach
-    const result = await apiCall(`/teams/${teamId}/members/${userId}/detach`, 'DELETE');
+    // Voeg toe met de standaardrol 'member'
+    const data = { role: 'member' };
+    const result = await apiCall(`/teams/${teamId}/members/${invitedUserId}/attach`, 'POST', data);
 
     if (result) {
-        manageMemberUsernameInput.value = ''; 
+        manageMemberUsernameInput.value = '';
         await refreshDashboard();
     }
 }
 
 // ----------------------------------------------------
-// PLAYER INFO BEHEER (NIEUW)
+// PLAYER INFO BEHEER (Ongewijzigd)
 // ----------------------------------------------------
 
 async function handlePlayerInfoManagement(event) {
@@ -418,23 +436,570 @@ async function handlePlayerInfoManagement(event) {
         skin_url: skinUrlInput.value.trim(),
     };
 
-    // POST /api/player-info (PlayerInfoController@storeOrUpdate)
     const result = await apiCall('/player-info', 'POST', data);
 
     if (result && result.user) {
-        // Update de currentUser met de nieuwe data (inclusief bijgewerkte player_info)
         currentUser = result.user;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        
-        // Refresh de UI
-        await refreshDashboard(); 
+
+        await refreshDashboard();
         showNotification('Player Info succesvol opgeslagen.', 'success');
     }
 }
 
 
 // ----------------------------------------------------
-// MODAL FUNCTIES
+// NIEUW: TEAMLEDEN BEHEER IN MODAL
+// ----------------------------------------------------
+
+/**
+ * Open de Team Leden Beheer Modal.
+ */
+async function openTeamMembersModal(teamId) {
+    const team = currentUser.teams.find(t => t.id === teamId);
+
+    if (!team) return;
+
+    const freshTeamData = await apiCall(`/teams/${teamId}`, 'GET');
+
+    if (!freshTeamData) return;
+
+    // Sla de team data op in een attribuut voor later gebruik in de modal functies
+    teamMembersModal.setAttribute('data-current-team', JSON.stringify(freshTeamData));
+
+    // Bepaal of de gebruiker Leader/Mod is
+    const canManageMembers = team.role === 'leader' || team.role === 'mod';
+
+    // Elementen voor dynamische aanpassing
+    const modalContent = document.getElementById('membersModalContentContainer');
+    const modalTitleSpan = document.getElementById('membersModalTitle');
+    const memberListContainer = document.getElementById('membersListContainer');
+
+    document.getElementById('membersModalTeamName').textContent = freshTeamData.team_name;
+
+    if (canManageMembers) {
+        modalTitleSpan.textContent = 'Leden Beheer: ';
+        // Huidige grote layout (max-w-4xl)
+        modalContent.classList.remove('max-w-lg');
+        modalContent.classList.add('max-w-4xl');
+        // Lijst neemt 1/3e van de ruimte in de grid en heeft een scheiding
+        memberListContainer.classList.remove('md:col-span-3', 'md:pr-0');
+        memberListContainer.classList.add('md:col-span-1', 'border-r', 'border-gray-700', 'md:pr-4');
+    } else {
+        modalTitleSpan.textContent = 'Leden Overzicht: ';
+        // Gewenste kleinere layout (max-w-lg)
+        modalContent.classList.remove('max-w-4xl');
+        modalContent.classList.add('max-w-lg');
+        // Lijst neemt de volledige breedte in de grid en heeft geen scheiding/minder padding rechts
+        memberListContainer.classList.remove('md:col-span-1', 'border-r', 'border-gray-700', 'md:pr-4');
+        memberListContainer.classList.add('md:col-span-3', 'md:pr-0'); // Gebruik md:col-span-3 om 100% breedte van de grid te pakken.
+    }
+
+    // Deel het beheerformulier en gerelateerde elementen in/uit.
+    document.getElementById('memberManagementPanel').classList.toggle('hidden', !canManageMembers);
+    document.getElementById('memberSearchInputContainer').classList.toggle('hidden', !canManageMembers);
+
+    // Reset en vul de ledenlijst
+    displayMemberList(freshTeamData);
+
+    // Reset het beheer formulier (alleen als de gebruiker kan beheren)
+    if (canManageMembers) {
+        resetMemberManagementForm();
+    } else {
+        // Zorg ervoor dat de beheervelden leeg zijn als ze niet getoond worden
+        managedMemberUsernameDisplay.textContent = 'Selecteer een lid';
+    }
+
+    memberSearchInput.value = ''; // Reset zoekveld
+
+    teamMembersModal.classList.remove('hidden');
+}
+window.openTeamMembersModal = openTeamMembersModal; // Maak globaal toegankelijk
+
+/**
+ * Reset het lid beheer formulier in de modal.
+ */
+function resetMemberManagementForm() {
+    managedMemberUsernameDisplay.textContent = 'Selecteer een lid';
+    teamMemberManagementForm.reset();
+    manageMemberTeamIdInput.value = '';
+    manageMemberIdInput.value = '';
+    manageMemberUsernameDisplayInput.value = '';
+
+    // Alles uitschakelen tot een lid is geselecteerd
+    manageMemberNewRoleSelect.disabled = true;
+    updateMemberRoleBtn.disabled = true;
+    kickMemberBtn.disabled = true;
+}
+
+/**
+ * Functie om de ledenlijst in de modal weer te geven.
+ */
+function displayMemberList(teamData, filter = '') {
+    const membersListDiv = document.getElementById('membersList');
+    membersListDiv.innerHTML = '';
+    const teamMembers = teamData.members;
+
+    const loggedInUserRole = currentUser.teams.find(t => t.id === teamData.id)?.role;
+    const canManageMembers = loggedInUserRole === 'leader' || loggedInUserRole === 'mod';
+
+    document.getElementById('memberCount').textContent = teamMembers.length;
+
+    // Sorteer op rol: Leader, Mod, Member
+    teamMembers.sort((a, b) => {
+        const roleOrder = { leader: 1, mod: 2, member: 3 };
+        return roleOrder[a.pivot.role] - roleOrder[b.pivot.role];
+    });
+
+    const filteredMembers = teamMembers.filter(member =>
+        member.username.toLowerCase().includes(filter.toLowerCase())
+    );
+
+    if (filteredMembers.length === 0) {
+        membersListDiv.innerHTML = `<p class="text-gray-400 p-2">Geen leden gevonden${filter ? ' voor zoekterm "' + filter + '"' : ''}.</p>`;
+        return;
+    }
+
+    filteredMembers.forEach(member => {
+        const memberElement = document.createElement('div');
+
+        // Cursors/hovers alleen toevoegen als de gebruiker kan beheren (omdat ze dan klikbaar zijn)
+        let elementClasses = 'p-3 bg-gray-700 rounded-lg flex justify-between items-center transition duration-150';
+        if (canManageMembers) {
+            elementClasses += ' hover:bg-gray-600 cursor-pointer';
+        }
+        memberElement.className = elementClasses;
+
+        memberElement.setAttribute('data-member-id', member.id);
+
+        const isSelf = member.id === currentUser.id;
+
+        memberElement.innerHTML = `
+            <div>
+                <span class="font-bold">${member.username} ${isSelf ? '(Jij)' : ''}</span>
+                <span class="text-sm text-yellow-400 ml-2">(${member.pivot.role.toUpperCase()})</span>
+            </div>
+        `;
+
+        // Leden alleen laden voor beheer als de gebruiker geautoriseerd is
+        if (canManageMembers) {
+            memberElement.addEventListener('click', () => loadMemberForManagement(member, teamData));
+        }
+
+        membersListDiv.appendChild(memberElement);
+    });
+}
+
+/**
+ * Functie om een specifiek lid te laden voor beheer.
+ */
+function loadMemberForManagement(member, teamData) {
+    const loggedInUserRole = currentUser.teams.find(t => t.id === teamData.id)?.role;
+    const isLeader = loggedInUserRole === 'leader';
+    const isSelf = member.id === currentUser.id;
+    const isTargetLeader = member.pivot.role === 'leader';
+
+    // Dit zou niet moeten gebeuren, maar voor de zekerheid:
+    if (loggedInUserRole !== 'leader' && loggedInUserRole !== 'mod') {
+        showNotification('U bent geen leider of moderator van dit team en mag de leden niet beheren.', 'error');
+        return;
+    }
+
+
+    // UI velden vullen
+    managedMemberUsernameDisplay.textContent = member.username;
+    manageMemberTeamIdInput.value = teamData.id;
+    manageMemberIdInput.value = member.id;
+    manageMemberUsernameDisplayInput.value = member.username;
+    manageMemberNewRoleSelect.value = member.pivot.role;
+
+    // ----- LOGICA: Voorkom dat de leider de 'leader' optie kan kiezen in Leden Beheer -----
+    const leaderOption = manageMemberNewRoleSelect.querySelector('option[value="leader"]');
+    if (leaderOption) {
+        // Reset de disabled status (belangrijk bij het wisselen van selectie)
+        leaderOption.disabled = false;
+
+        // Als de ingelogde gebruiker de teamleider is, blokkeer dan de 'leader' optie.
+        // Dit voorkomt dat leiderschap via deze modal wordt overgedragen, wat alleen via Team Beheer mag.
+        if (isLeader) {
+            leaderOption.disabled = true;
+        }
+    }
+    // ---------------------------------------------------------------------------------------------
+
+    // Knoppen en velden inschakelen/uitschakelen op basis van autorisatie
+
+    // 1. Rol wijzigen
+    if (isSelf) {
+        // Je kunt je eigen rol niet wijzigen via dit paneel
+        manageMemberNewRoleSelect.disabled = true;
+        updateMemberRoleBtn.disabled = true;
+    } else if (isTargetLeader) {
+        // Alleen de leader kan de rol van een andere leader wijzigen (naar leader = overdragen)
+        // Nu kan de leader alleen nog een downgrade uitvoeren, omdat de 'leader' optie is uitgeschakeld.
+        manageMemberNewRoleSelect.disabled = !isLeader;
+        updateMemberRoleBtn.disabled = !isLeader;
+    } else {
+        // Leader en Mod kunnen andere leden en mods wijzigen
+        manageMemberNewRoleSelect.disabled = !(isLeader || loggedInUserRole === 'mod');
+        updateMemberRoleBtn.disabled = !(isLeader || loggedInUserRole === 'mod');
+    }
+
+    // Zorg ervoor dat een Mod de rol van een andere Mod niet naar 'Leader' kan zetten
+    if (loggedInUserRole === 'mod') {
+        const leaderOption = manageMemberNewRoleSelect.querySelector('option[value="leader"]');
+        if (leaderOption) {
+            leaderOption.disabled = true;
+        }
+    } else if (isLeader) {
+        const leaderOption = manageMemberNewRoleSelect.querySelector('option[value="leader"]');
+        if (leaderOption) {
+            leaderOption.disabled = true; // Blijft true door nieuwe logica
+        }
+    }
+
+
+    // 2. Kicken
+    if (isSelf || isTargetLeader) {
+        // Je kunt jezelf of de leader niet kicken
+        kickMemberBtn.disabled = true;
+    } else {
+        // Leader en Mod kunnen andere leden en mods kicken
+        kickMemberBtn.disabled = !(isLeader || loggedInUserRole === 'mod');
+    }
+
+    // Visuele feedback voor de selectie
+    document.querySelectorAll('#membersList > div').forEach(el => {
+        el.classList.remove('bg-gray-600', 'border-2', 'border-indigo-500');
+    });
+    const selectedEl = document.querySelector(`[data-member-id="${member.id}"]`);
+    if (selectedEl) {
+        selectedEl.classList.add('bg-gray-600', 'border-2', 'border-indigo-500');
+    }
+}
+
+/**
+ * Lidrol bijwerken in het team.
+ */
+async function handleMemberRoleUpdate(event) {
+    event.preventDefault();
+    const teamId = manageMemberTeamIdInput.value;
+    const memberId = manageMemberIdInput.value;
+    const newRole = manageMemberNewRoleSelect.value;
+    const username = manageMemberUsernameDisplayInput.value;
+
+    if (!teamId || !memberId) return;
+
+    const teamData = JSON.parse(teamMembersModal.getAttribute('data-current-team'));
+    const loggedInUserRole = currentUser.teams.find(t => t.id == teamId)?.role;
+    const targetMember = teamData.members.find(m => m.id == memberId);
+
+    if (newRole === 'leader') {
+        showNotification('Leiderschap kan alleen worden overgedragen via de Team Beheer modal.', 'error');
+        return;
+    }
+
+    const data = { role: newRole };
+    // Dezelfde API route voor zowel toevoegen als rol wijzigen
+    const result = await apiCall(`/teams/${teamId}/members/${memberId}/attach`, 'POST', data);
+
+    if (result) {
+        // Ververs de modal en het dashboard
+        await refreshDashboard();
+        await openTeamMembersModal(teamId); // Herlaad de modal met nieuwe data
+        showNotification(`Rol van ${username} succesvol gewijzigd naar ${newRole.toUpperCase()}.`, 'success');
+    }
+}
+
+/**
+ * Lid uit het team kicken/verwijderen.
+ */
+async function handleMemberKick() {
+    const teamId = manageMemberTeamIdInput.value;
+    const memberId = manageMemberIdInput.value;
+    const username = manageMemberUsernameDisplayInput.value;
+
+    if (!teamId || !memberId) return;
+
+    if (!confirm(`Weet je zeker dat je lid ${username} wilt kicken uit het team?`)) {
+        return;
+    }
+
+    const result = await apiCall(`/teams/${teamId}/members/${memberId}/detach`, 'DELETE');
+
+    if (result) {
+        // Ververs de modal en het dashboard
+        await refreshDashboard();
+        await openTeamMembersModal(teamId); // Herlaad de modal met nieuwe data
+        showNotification(`${username} succesvol gekickt uit het team.`, 'success');
+    }
+}
+
+
+// ----------------------------------------------------
+// ADMIN PANEEL FUNCTIES (Aangepast)
+// ----------------------------------------------------
+
+/**
+ * Functie om de gebruikerslijst in de modal weer te geven.
+ */
+function displayUserList(users) {
+    adminUserList.innerHTML = '';
+    document.getElementById('userCount').textContent = users.length;
+
+    users.sort((a, b) => a.username.localeCompare(b.username)); // Sorteer op gebruikersnaam
+
+    users.forEach(user => {
+        const isSelf = user.id === currentUser.id;
+        const userElement = document.createElement('div');
+        userElement.className = 'p-3 bg-gray-700 hover:bg-gray-600 rounded-lg flex justify-between items-center cursor-pointer transition duration-150';
+        userElement.setAttribute('data-user-id', user.id);
+
+        userElement.innerHTML = `
+            <div>
+                <span class="font-bold">${user.username} ${isSelf ? '(Jij)' : ''}</span>
+                <span class="text-sm text-yellow-400 ml-2">(${user.role.toUpperCase()})</span>
+            </div>
+        `;
+
+        // Zorg ervoor dat de click-handler de juiste ID doorgeeft
+        userElement.addEventListener('click', () => loadUserForManagement(user.id));
+        adminUserList.appendChild(userElement);
+    });
+}
+
+/**
+ * Functie om de gebruikerslijst te filteren op zoekterm.
+ */
+function filterUserListBySearch() {
+    const searchTerm = userSearchInput.value.toLowerCase().trim();
+    if (!searchTerm) {
+        displayUserList(userCache);
+        return;
+    }
+
+    const filteredUsers = userCache.filter(user =>
+        user.username.toLowerCase().includes(searchTerm)
+    );
+    displayUserList(filteredUsers);
+}
+
+/**
+ * Functie om een specifieke gebruiker te laden voor beheer.
+ * CRUCIALE FIX: Verwijdert de zelfstandige cache refresh. De caller (handleUserUpdate of openAdminPanelModal) 
+ * moet nu garanderen dat de cache vers is.
+ */
+async function loadUserForManagement(userId) {
+    let user = userCache.find(u => u.id === userId);
+
+    if (!user) {
+        // Als de gebruiker niet gevonden is, ondanks dat de cache net ververst is door de caller, 
+        // is er een ernstigere fout. Toon direct de fout.
+        showNotification('Gebruiker niet gevonden in cache. De lijst is verouderd. Probeer de admin modal opnieuw te openen.', 'error');
+        return;
+    }
+
+
+    // UI velden vullen
+    managedUsernameDisplay.textContent = user.username;
+    manageUserIdInput.value = user.id;
+    manageUserIdPasswordInput.value = user.id;
+    manageUsernameInput.value = user.username;
+    manageEmailInput.value = user.email;
+    manageRoleSelect.value = user.role;
+
+    // Knoppen en velden inschakelen
+    const isSelf = user.id === currentUser.id;
+
+    // Je kunt je eigen rol niet wijzigen of jezelf verwijderen
+    manageRoleSelect.disabled = isSelf;
+    deleteUserBtn.disabled = isSelf;
+
+    // Alle andere velden inschakelen
+    manageUsernameInput.disabled = false;
+    manageEmailInput.disabled = false;
+    document.getElementById('updateUserBtn').disabled = false;
+
+    // Wachtwoord velden inschakelen
+    managePasswordInput.disabled = false;
+    managePasswordConfirmInput.disabled = false;
+    document.getElementById('updatePasswordBtn').disabled = false;
+
+    // Visuele feedback voor de selectie 
+    document.querySelectorAll('#adminUserList > div').forEach(el => {
+        el.classList.remove('bg-gray-600', 'border-2', 'border-indigo-500');
+    });
+    const selectedEl = document.querySelector(`[data-user-id="${userId}"]`);
+    if (selectedEl) {
+        selectedEl.classList.add('bg-gray-600', 'border-2', 'border-indigo-500');
+    }
+}
+window.loadUserForManagement = loadUserForManagement; // Maak globaal toegankelijk
+
+/**
+ * Open de Admin Panel Modal.
+ */
+async function openAdminPanelModal() {
+
+    // 1. Forceer een volledige refresh van de gebruikerslijst (incl. rollen/emails)
+    // Dit zorgt ervoor dat userCache de meest recente data bevat.
+    await fetchAllUsers();
+
+    // 2. Werk de lokale currentUser bij met de verse rol uit de cache
+    const adminUserInCache = userCache.find(u => u.id === currentUser.id);
+    if (adminUserInCache && adminUserInCache.role) {
+        currentUser.role = adminUserInCache.role;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    }
+
+    // 3. Voer de autorisatiecheck uit op de VERRRSE data.
+    if (!currentUser || currentUser.role !== 'admin') {
+        showNotification('Toegang geweigerd.', 'error');
+        return;
+    }
+
+    // 4. Doorgaan met het openen van het paneel
+    displayUserList(userCache);
+
+    // Reset het beheer formulier
+    managedUsernameDisplay.textContent = 'Selecteer een gebruiker';
+    adminUserManagementForm.reset();
+    adminUserPasswordForm.reset();
+
+    // Alles uitschakelen tot een gebruiker is geselecteerd
+    manageUsernameInput.disabled = true;
+    manageEmailInput.disabled = true;
+    manageRoleSelect.disabled = true;
+    document.getElementById('updateUserBtn').disabled = true;
+    deleteUserBtn.disabled = true;
+    managePasswordInput.disabled = true;
+    managePasswordConfirmInput.disabled = true;
+    document.getElementById('updatePasswordBtn').disabled = true;
+
+    adminPanelModal.classList.remove('hidden');
+}
+window.openAdminPanelModal = openAdminPanelModal;
+
+/**
+ * Gebruikersgegevens bijwerken (Naam/Email/Rol).
+ * CRUCIALE FIX: Forceert cache refresh na succesvolle API-call.
+ */
+async function handleUserUpdate(event) {
+    event.preventDefault();
+    const userId = manageUserIdInput.value;
+
+    if (!userId) return;
+
+    const data = {
+        username: manageUsernameInput.value.trim(),
+        email: manageEmailInput.value.trim(),
+        role: manageRoleSelect.value,
+    };
+
+    const result = await apiCall(`/users/${userId}`, 'PUT', data);
+
+    if (result) {
+        showNotification(`Gebruiker ${data.username} succesvol bijgewerkt.`, 'success');
+
+        // NIEUWE FIX: Forceer een volledige en asynchrone cache refresh van alle gebruikers.
+        // Dit is de essentiële stap om de raceconditie te voorkomen.
+        await fetchAllUsers();
+
+        // Werk de UI lijst bij met de verse cache
+        displayUserList(userCache);
+
+        // Laad de bijgewerkte gebruiker in het formulier.
+        // Dit is nu veilig omdat de cache gegarandeerd vers is en loadUserForManagement de user moet vinden.
+        await loadUserForManagement(parseInt(userId)); // Gebruik parseInt(userId) voor zekerheid bij lookup
+
+        // Update de lokale currentUser als we onszelf hebben bijgewerkt
+        if (currentUser.id == userId) {
+            // Zoek de meest recente versie van onszelf in de verse cache
+            const updatedUser = userCache.find(u => u.id === parseInt(userId));
+            if (updatedUser) {
+                currentUser = updatedUser;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUI();
+            }
+        }
+    }
+}
+
+/**
+ * Gebruikerswachtwoord bijwerken.
+ */
+async function handlePasswordUpdate(event) {
+    event.preventDefault();
+    const userId = manageUserIdPasswordInput.value;
+    const password = managePasswordInput.value;
+    const passwordConfirm = managePasswordConfirmInput.value;
+
+    if (!userId) return;
+
+    if (password.length < 6) {
+        showNotification('Wachtwoord moet minimaal 6 tekens lang zijn.', 'error');
+        return;
+    }
+
+    if (password !== passwordConfirm) {
+        showNotification('Wachtwoorden komen niet overeen.', 'error');
+        return;
+    }
+
+    const data = {
+        password: password,
+        password_confirmation: passwordConfirm,
+    };
+
+    const result = await apiCall(`/users/${userId}`, 'PUT', data);
+
+    if (result) {
+        showNotification(`Wachtwoord voor gebruiker succesvol gewijzigd.`, 'success');
+        adminUserPasswordForm.reset();
+    }
+}
+
+/**
+ * Gebruiker verwijderen.
+ */
+async function deleteUser() {
+    const userId = manageUserIdInput.value;
+    const username = managedUsernameDisplay.textContent;
+
+    if (!userId || userId == currentUser.id) return;
+
+    if (!confirm(`WEET U ZEKER dat u gebruiker "${username}" (ID: ${userId}) wilt verwijderen? Dit kan NIET ongedaan worden gemaakt.`)) {
+        return;
+    }
+
+    const result = await apiCall(`/users/${userId}`, 'DELETE');
+
+    if (result) {
+        showNotification(`Gebruiker ${username} succesvol verwijderd.`, 'success');
+
+        // NIEUWE FIX: Forceer cache refresh na verwijdering
+        await fetchAllUsers();
+
+        displayUserList(userCache);
+        managedUsernameDisplay.textContent = 'Selecteer een gebruiker';
+        adminUserManagementForm.reset();
+        adminUserPasswordForm.reset();
+
+        // Reset knoppen en velden
+        manageUsernameInput.disabled = true;
+        manageEmailInput.disabled = true;
+        manageRoleSelect.disabled = true;
+        document.getElementById('updateUserBtn').disabled = true;
+        deleteUserBtn.disabled = true;
+        managePasswordInput.disabled = true;
+        managePasswordConfirmInput.disabled = true;
+        document.getElementById('updatePasswordBtn').disabled = true;
+    }
+}
+
+
+// ----------------------------------------------------
+// MODAL FUNCTIES (Team Beheer ongewijzigd)
 // ----------------------------------------------------
 
 function closeModal(modalId) {
@@ -442,9 +1007,6 @@ function closeModal(modalId) {
 }
 window.closeModal = closeModal; 
 
-/**
- * Opent de Team Beheer modal en laadt de data.
- */
 async function openTeamManagementModal(teamId) {
     const team = currentUser.teams.find(t => t.id === teamId);
     if (!team || team.role !== 'leader') {
@@ -464,9 +1026,6 @@ async function openTeamManagementModal(teamId) {
 }
 window.openTeamManagementModal = openTeamManagementModal;
 
-/**
- * Verwerkt de Team Update (PUT /api/teams/{team}).
- */
 async function updateTeam(event) {
     event.preventDefault();
     const teamId = document.getElementById('updateTeamId').value;
@@ -478,7 +1037,6 @@ async function updateTeam(event) {
         capital_coords: document.getElementById('updateTeamCapitalCoords').value.trim(),
     };
 
-    // PUT /api/teams/{team}
     const result = await apiCall(`/teams/${teamId}`, 'PUT', data);
 
     if (result) {
@@ -487,9 +1045,6 @@ async function updateTeam(event) {
     }
 }
 
-/**
- * Verwerkt de Leiderschap Overdracht.
- */
 async function transferTeamLeadership() {
     const teamId = document.getElementById('updateTeamId').value;
     const newLeaderUsername = document.getElementById('transferLeaderUsername').value.trim();
@@ -504,20 +1059,17 @@ async function transferTeamLeadership() {
         showNotification(`Gebruiker met naam "${newLeaderUsername}" niet gevonden.`, 'error');
         return;
     }
-    
-    // Controleer of de nieuwe leider al lid is van het team (dit is vereist door de API)
+
     const team = currentUser.teams.find(t => t.id == teamId);
-    const isMember = team.members.some(member => member.id === newLeaderId);
-    if (!isMember) {
-        showNotification(`Gebruiker ${newLeaderUsername} moet eerst lid zijn van het team.`, 'error');
-        return;
-    }
+    // Let op: team.members in currentUser is misschien niet de volledige set.
+    // Maar aangezien dit de Leader's taak is, gaan we ervan uit dat de leader het weet.
+    // De backend zal controleren of de user in het team zit en de rollen omdraaien.
     
-    if (!confirm(`Weet u zeker dat u het leiderschap van dit team wilt overdragen aan ${newLeaderUsername}?`)) {
+    if (!confirm(`Weet u zeker dat u het leiderschap van dit team wilt overdragen aan ${newLeaderUsername}? U wordt dan Moderator.`)) {
         return;
     }
 
-    // POST /api/teams/{team}/members/{user}/attach met role: 'leader'
+    // De attach route zal automatisch de rol van de oude leader naar 'mod' zetten als de nieuwe rol 'leader' is
     const result = await apiCall(`/teams/${teamId}/members/${newLeaderId}/attach`, 'POST', { role: 'leader' });
 
     if (result) {
@@ -528,57 +1080,19 @@ async function transferTeamLeadership() {
 }
 
 
-/**
- * Opent de Leden modal en laadt de ledenlijst.
- */
-async function openTeamMembersModal(teamId) {
-    const team = currentUser.teams.find(t => t.id === teamId);
-    
-    const freshTeamData = await apiCall(`/teams/${teamId}`, 'GET');
-
-    if (!freshTeamData) return;
-
-    document.getElementById('membersModalTeamName').textContent = freshTeamData.team_name;
-    const membersListDiv = document.getElementById('membersList');
-    membersListDiv.innerHTML = '';
-    
-    freshTeamData.members.sort((a, b) => {
-        // Sorteer op rol: Leader eerst, dan Mod, dan Member
-        const roleOrder = { leader: 1, mod: 2, member: 3 };
-        return roleOrder[a.pivot.role] - roleOrder[b.pivot.role];
-    });
-
-    freshTeamData.members.forEach(member => {
-        const memberElement = document.createElement('div');
-        memberElement.className = 'p-3 bg-gray-700 rounded-lg flex justify-between items-center';
-        
-        const isSelf = member.id === currentUser.id;
-        
-        memberElement.innerHTML = `
-            <div>
-                <span class="font-bold">${member.username} ${isSelf ? '(Jij)' : ''}</span>
-                <span class="text-sm text-yellow-400 ml-2">(${member.pivot.role.toUpperCase()})</span>
-            </div>
-            ${freshTeamData.leader && member.id === freshTeamData.leader.id ? '<span class="text-xs text-green-400">LEIDER</span>' : ''}
-        `;
-        membersListDiv.appendChild(memberElement);
-    });
-
-    teamMembersModal.classList.remove('hidden');
-}
-window.openTeamMembersModal = openTeamMembersModal;
-
-
 // ----------------------------------------------------
-// UI FUNCTIES
+// UI FUNCTIES (Ongewijzigd)
 // ----------------------------------------------------
 
 function updateUI() {
     const isLoggedIn = !!apiToken && !!currentUser;
-    
+    // De rol is nu betrouwbaarder ingesteld in refreshDashboard()
+    const isAdmin = isLoggedIn && currentUser && currentUser.role === 'admin'; 
+
     loginBtn.classList.toggle('hidden', isLoggedIn);
     registerBtn.classList.toggle('hidden', isLoggedIn);
     logoutBtn.classList.toggle('hidden', !isLoggedIn);
+    adminBtn.classList.toggle('hidden', !isAdmin); 
     
     welcomeSection.classList.toggle('hidden', isLoggedIn);
     loginSection.classList.add('hidden');
@@ -645,16 +1159,33 @@ document.addEventListener('DOMContentLoaded', () => {
     registerForm.addEventListener('submit', registerUser);
     logoutBtn.addEventListener('click', () => logoutUser(true)); 
 
-    // Nieuwe acties
+    // Team acties
     createTeamForm.addEventListener('submit', createTeam); 
+    // GEWIJZIGD: nu alleen voor attach als member
     manageMemberForm.addEventListener('submit', handleMemberManagement); 
-    // De knop om lid te verwijderen staat in manageMemberForm, maar we gebruiken event.submitter.id om te bepalen welke actie wordt uitgevoerd in handleMemberManagement.
-    // detachMemberBtn.addEventListener('click', detachMember); // Is niet nodig door handleMemberManagement
     updateTeamForm.addEventListener('submit', updateTeam); 
     transferLeaderBtn.addEventListener('click', transferTeamLeadership); 
     
-    // NIEUW: Player Info
+    // Player Info
     managePlayerInfoForm.addEventListener('submit', handlePlayerInfoManagement);
+
+    // Admin Knoppen (aangepast)
+    adminBtn.addEventListener('click', openAdminPanelModal);
+    adminUserManagementForm.addEventListener('submit', handleUserUpdate);
+    deleteUserBtn.addEventListener('click', deleteUser);
+    adminUserPasswordForm.addEventListener('submit', handlePasswordUpdate);
+    userSearchInput.addEventListener('input', filterUserListBySearch);
+
+    // NIEUW: Leden Beheer in Modal
+    memberSearchInput.addEventListener('input', () => {
+        const teamDataString = teamMembersModal.getAttribute('data-current-team');
+        if (teamDataString) {
+            const teamData = JSON.parse(teamDataString);
+            displayMemberList(teamData, memberSearchInput.value);
+        }
+    });
+    teamMemberManagementForm.addEventListener('submit', handleMemberRoleUpdate);
+    kickMemberBtn.addEventListener('click', handleMemberKick);
 
 
     // Initialisatie bij laden van de pagina

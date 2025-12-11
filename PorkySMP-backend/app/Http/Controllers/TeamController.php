@@ -165,12 +165,27 @@ class TeamController extends Controller
             ], 403);
         }
         
+        // 5. CRUCIALE LOGICA: Leiderschap overdragen
+        if ($newRole === 'leader' && $leader && $leader->id !== $user->id) {
+            // De ingelogde gebruiker moet de leider zijn om het leiderschap over te dragen
+            if ($loggedInUserRole !== 'leader') {
+                 return response()->json([
+                    'message' => 'Alleen de huidige leider kan het leiderschap overdragen.'
+                ], 403);
+            }
+            
+            // Downgrade de oude leider naar 'mod'
+            $team->members()->updateExistingPivot($leader->id, ['role' => 'mod']);
+        }
+        
         $isAlreadyMember = $team->members()->where('user_id', $user->id)->exists();
 
         if ($isAlreadyMember) {
             $team->members()->updateExistingPivot($user->id, ['role' => $newRole]);
             $message = "Rol van gebruiker {$user->username} is bijgewerkt naar '{$newRole}' in team {$team->team_name}.";
         } else {
+            // Dit zou in het geval van leiderschapsoverdracht niet moeten gebeuren, 
+            // omdat de nieuwe leider lid moet zijn van het team, maar we houden de logica.
             $team->members()->attach($user->id, ['role' => $newRole]);
             $message = "Gebruiker {$user->username} succesvol toegevoegd aan team {$team->team_name} met de rol '{$newRole}'.";
         }

@@ -18,8 +18,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.75);
-            z-index: 40;
-            /* Onder de modal */
+            z-index: 40; /* Onder de modal */
         }
     </style>
 </head>
@@ -30,6 +29,7 @@
             <div class="flex space-x-4">
                 <button id="loginBtn" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded">Inloggen</button>
                 <button id="registerBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Registreren</button>
+                <button id="adminBtn" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded hidden">Admin</button>
                 <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded hidden">Uitloggen</button>
             </div>
         </div>
@@ -38,12 +38,12 @@
     <div id="notification" class="alert fixed bottom-4 right-4 z-50 transition-opacity duration-300 opacity-0"></div>
 
     <main class="container mx-auto p-4 mt-8">
-    
+        
         <section id="welcomeSection" class="text-center">
             <h2 class="text-4xl font-bold mb-4 minecraft-font">Welkom bij de Server Community</h2>
             <p class="text-xl text-gray-400">Log in of registreer om je team te beheren en statistieken te zien.</p>
         </section>
-    
+
         <section id="loginSection" class="max-w-md mx-auto bg-gray-800 p-8 rounded-lg shadow-xl hidden">
             <h2 class="text-3xl font-bold mb-6 text-center">Inloggen</h2>
             <form id="loginForm" class="space-y-4">
@@ -99,7 +99,9 @@
             <h2 class="text-3xl font-bold mb-6">Welkom terug, <span id="dashboardUser" class="text-yellow-400"></span>!</h2>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
                 <div class="lg:col-span-2 space-y-8">
+                    
                     <div>
                         <h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Nieuw Team Aanmaken</h3>
                         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
@@ -110,21 +112,18 @@
                                         class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2">
                                 </div>
                                 <div>
-                                    <label for="teamDescription" class="block text-sm font-medium text-gray-300">Beschrijving
-                                        (Optioneel)</label>
+                                    <label for="teamDescription" class="block text-sm font-medium text-gray-300">Beschrijving (Optioneel)</label>
                                     <textarea id="teamDescription" name="description" placeholder="Korte beschrijving van het team"
                                         class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2"></textarea>
                                 </div>
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label for="teamFlagUrl" class="block text-sm font-medium text-gray-300">Vlag URL
-                                            (Optioneel)</label>
+                                        <label for="teamFlagUrl" class="block text-sm font-medium text-gray-300">Vlag URL (Optioneel)</label>
                                         <input type="text" id="teamFlagUrl" name="flag_url" placeholder="URL naar teamvlag"
                                             class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2">
                                     </div>
                                     <div>
-                                        <label for="teamCapitalCoords" class="block text-sm font-medium text-gray-300">Hoofdstad Coördinaten
-                                            (Optioneel)</label>
+                                        <label for="teamCapitalCoords" class="block text-sm font-medium text-gray-300">Hoofdstad Coördinaten (Optioneel)</label>
                                         <input type="text" id="teamCapitalCoords" name="capital_coords" placeholder="X, Y, Z"
                                             class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2">
                                     </div>
@@ -137,37 +136,29 @@
                     </div>
 
                     <div>
-                        <h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Lid Toevoegen/Rol Wijzigen/Verwijderen</h3>
+                        <h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Lid Toevoegen</h3>
                         <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
                             <form id="manageMemberForm" class="space-y-4">
                                 <select id="manageMemberTeamSelect" class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2">
-                                    <option value="">Selecteer Team (Alleen Teams waar u Leader/Mod bent)</option>
+                                    <option value="">Selecteer Team</option>
                                     </select>
                                 <input type="text" id="manageMemberUsername" required placeholder="Gebruikersnaam van het lid"
                                     class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2">
-                                <select id="manageMemberRole" class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2">
-                                    <option value="member">Member</option>
-                                    <option value="mod">Moderator</option>
-                                </select>
-                                <div class="flex space-x-2">
-                                    <button type="submit" id="attachMemberBtn"
-                                        class="flex-grow bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded transition duration-200">Toevoegen/Rol
-                                        Wijzigen</button>
-                                    <button type="button" id="detachMemberBtn"
-                                        class="w-1/3 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-200">Verwijderen</button>
-                                </div>
+                                <button type="submit" id="attachMemberBtn"
+                                    class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 px-4 rounded transition duration-200">Lid
+                                    Toevoegen</button>
                             </form>
-                            </div>
+                        </div>
                     </div>
-                    </div>
+                </div>
 
                 <div>
+                    
                     <h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Player Info Beheer</h3>
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg mb-8">
                         <form id="managePlayerInfoForm" class="space-y-3">
                             <div>
-                                <label for="skinUrl" class="block text-sm font-medium text-gray-300">Skin URL (bijv. Crafatar,
-                                    OptiFine)</label>
+                                <label for="skinUrl" class="block text-sm font-medium text-gray-300">Skin URL (bijv. Crafatar, OptiFine)</label>
                                 <input type="url" id="skinUrl" name="skin_url" placeholder="Voer URL in van je Minecraft skin"
                                     class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2">
                             </div>
@@ -175,21 +166,21 @@
                                 class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-200">Opslaan</button>
                             </form>
                             </div>
-<h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Jouw Teams (<span id="teamsCount">0 teams</span>)</h3>
-<div id="teamsList" class="space-y-3">
-    <p class="text-gray-400">Laden...</p>
+
+                    <h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Jouw Teams (<span id="teamsCount">0 teams</span>)</h3>
+                    <div id="teamsList" class="space-y-3">
+                        <p class="text-gray-400">Laden...</p>
                     </div>
-                    </div>
-                    </div>
+                </div>
+                </div>
 
         </section>
-        
-        </main>
+</main>
+    
     <div id="teamManagementModal" class="fixed top-0 left-0 w-full h-full hidden z-50 flex items-center justify-center">
         <div class="modal-backdrop absolute"></div>
         <div class="bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-md relative z-50">
-            <h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Team Beheer: <span id="modalTeamName"></span>
-            </h3>
+            <h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Team Beheer: <span id="modalTeamName"></span></h3>
             <form id="updateTeamForm" class="space-y-4">
                 <input type="hidden" id="updateTeamId">
                 <div>
@@ -216,8 +207,8 @@
 
                 <div class="border-t border-gray-700 pt-4">
                     <h4 class="font-bold mb-2">Leiderschap Overdragen</h4>
-                    <p class="text-xs text-gray-400 mb-2">Voer de gebruikersnaam van een huidig lid in om het leiderschap over te
-                        dragen.</p>
+                    <p class="text-xs text-gray-400 mb-2">Voer de gebruikersnaam van een huidig lid in om het leiderschap over te dragen.
+                    </p>
                     <div class="flex space-x-2">
                         <input type="text" id="transferLeaderUsername" placeholder="Nieuwe leider gebruikersnaam"
                             class="flex-grow rounded-md bg-gray-700 border-gray-600 text-white p-2">
@@ -229,24 +220,168 @@
                 <div class="flex justify-end space-x-2 mt-6">
                     <button type="button" onclick="closeModal('teamManagementModal')"
                         class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Annuleren</button>
-                    <button type="submit"
-                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Opslaan</button>
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Opslaan</button>
                 </div>
             </form>
-            </div>
-            </div>
+        </div>
+        </div>
+    
     <div id="teamMembersModal" class="fixed top-0 left-0 w-full h-full hidden z-50 flex items-center justify-center">
         <div class="modal-backdrop absolute"></div>
-        <div class="bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-lg relative z-50">
-            <h3 class="text-2xl font-bold mb-4 border-b border-gray-700 pb-2">Leden Overzicht: <span
+        <div id="membersModalContentContainer"
+            class="bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl relative z-50 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-3xl font-bold mb-4 border-b border-gray-700 pb-2"><span id="membersModalTitle"></span><span
                     id="membersModalTeamName"></span></h3>
-            <div id="membersList" class="max-h-80 overflow-y-auto space-y-2 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+            <div id="membersListContainer" class="md:col-span-1 border-r border-gray-700 md:pr-4">
+                <h4 class="text-xl font-semibold mb-3">Teamleden (<span id="memberCount">0</span>)</h4>
+                <div id="memberSearchInputContainer">
+                    <input type="text" id="memberSearchInput" placeholder="Zoek op gebruikersnaam..."
+                        class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2 mb-3">
+                </div>
+                <div id="membersList" class="space-y-2 max-h-96 overflow-y-auto pr-2">
+                    <p class="text-gray-400">Laden leden...</p>
+                </div>
             </div>
-            <div class="flex justify-end">
+        
+            <div class="md:col-span-2" id="memberManagementPanel">
+                <h4 class="text-xl font-semibold mb-3">Beheer Lid: <span id="managedMemberUsernameDisplay"
+                        class="text-yellow-400">Selecteer een lid</span></h4>
+        
+                <form id="teamMemberManagementForm" class="space-y-4">
+                    <input type="hidden" id="manageMemberTeamId">
+                    <input type="hidden" id="manageMemberId">
+        
+                    <div>
+                        <label for="manageMemberUsernameDisplayInput"
+                            class="block text-sm font-medium text-gray-300">Gebruikersnaam</label>
+                        <input type="text" id="manageMemberUsernameDisplayInput"
+                            class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2" disabled>
+                    </div>
+        
+                    <div>
+                        <label for="manageMemberNewRole" class="block text-sm font-medium text-gray-300">Team Rol</label>
+                        <select id="manageMemberNewRole" required
+                            class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2" disabled>
+                            <option value="member">Member</option>
+                            <option value="mod">Moderator</option>
+                            <option value="leader">Leader</option>
+                        </select>
+                    </div>
+        
+                    <div class="flex space-x-2 pt-4">
+                        <button type="submit" id="updateMemberRoleBtn"
+                            class="flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-200"
+                            disabled>Rol Bijwerken</button>
+                        <button type="button" id="kickMemberBtn"
+                            class="w-1/3 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-200"
+                            disabled>Lid Kicken</button>
+                    </div>
+                </form>
+        
+                <div class="border-t border-gray-700 mt-6 pt-6 text-sm">
+                    <p class="text-red-400 font-semibold">Autorisatie Opmerking:</p>
+                    <ul class="list-disc list-inside text-gray-400 ml-4">
+                        <li>**Leaders** kunnen rollen wijzigen naar `Mod` of `Member` en alle niet-leiders kicken. **Let op:
+                            Leiderschap overdragen is enkel mogelijk via de 'Team Beheer' modal.**</li>
+                        <li>**Moderators** kunnen de rol wijzigen naar `Mod` of `Member` en `Members` en andere `Moderators`
+                            kicken.</li>
+                        <li>U kunt uzelf niet kicken of uw eigen rol wijzigen. De huidige Leader kan niet gekickt worden.</li>
+                    </ul>
+                </div>
+            </div>
+            </div>
+        <div class="flex justify-end mt-6">
                 <button type="button" onclick="closeModal('teamMembersModal')"
                     class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Sluiten</button>
             </div>
         </div>
+        </div>
+        
+        
+        <div id="adminPanelModal" class="fixed top-0 left-0 w-full h-full hidden z-50 flex items-center justify-center">
+            <div class="modal-backdrop absolute"></div>
+            <div class="bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl relative z-50 max-h-[90vh] overflow-y-auto">
+                <h3 class="text-3xl font-bold mb-4 border-b border-gray-700 pb-2">Admin Paneel: Gebruikersbeheer</h3>
+        
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+                    <div class="md:col-span-1 border-r border-gray-700 md:pr-4">
+                        <h4 class="text-xl font-semibold mb-3">Gebruikerslijst (<span id="userCount">0</span>)</h4>
+                        <input type="text" id="userSearchInput" placeholder="Zoek op gebruikersnaam..."
+                            class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2 mb-3">
+                        <div id="adminUserList" class="space-y-2 max-h-96 overflow-y-auto pr-2">
+                            <p class="text-gray-400">Laden...</p>
+                        </div>
+                    </div>
+        
+                    <div class="md:col-span-2">
+                        <h4 class="text-xl font-semibold mb-3">Beheer Gebruiker: <span id="managedUsernameDisplay"
+                                class="text-yellow-400">Selecteer een gebruiker</span></h4>
+                        <form id="adminUserManagementForm" class="space-y-4">
+                            <input type="hidden" id="manageUserId">
+        
+                            <div>
+                                <label for="manageUsername"
+                                    class="block text-sm font-medium text-gray-300">Gebruikersnaam</label>
+                                <input type="text" id="manageUsername" required
+                                    class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2" disabled>
+                            </div>
+        
+                            <div>
+                                <label for="manageEmail" class="block text-sm font-medium text-gray-300">E-mail</label>
+                                <input type="email" id="manageEmail" required
+                                    class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2" disabled>
+                            </div>
+        
+                            <div>
+                                <label for="manageRole" class="block text-sm font-medium text-gray-300">Globale Rol</label>
+                                <select id="manageRole" required
+                                    class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2" disabled>
+                                    <option value="user">user</option>
+                                    <option value="admin">admin</option>
+                                </select>
+                            </div>
+        
+                            <div class="flex space-x-2 pt-4">
+                                <button type="submit" id="updateUserBtn"
+                                    class="flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-200"
+                                    disabled>Gebruiker Bijwerken</button>
+                                <button type="button" id="deleteUserBtn"
+                                    class="w-1/3 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-200"
+                                    disabled>Gebruiker Verwijderen</button>
+                            </div>
+                        </form>
+        
+                        <div class="border-t border-gray-700 mt-6 pt-6">
+                            <h5 class="text-lg font-semibold mb-2 text-red-400">Wachtwoord Reset (Optioneel)</h5>
+                            <form id="adminUserPasswordForm" class="space-y-3">
+                                <input type="hidden" id="manageUserIdPassword">
+                                <div>
+                                    <label for="managePassword" class="block text-sm font-medium text-gray-300">Nieuw
+                                        Wachtwoord</label>
+                                    <input type="password" id="managePassword"
+                                        class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2" disabled>
+                                </div>
+                                <div>
+                                    <label for="managePasswordConfirm" class="block text-sm font-medium text-gray-300">Bevestig
+                                        Wachtwoord</label>
+                                    <input type="password" id="managePasswordConfirm"
+                                        class="w-full rounded-md bg-gray-700 border-gray-600 text-white p-2" disabled>
+                                </div>
+                                <button type="submit" id="updatePasswordBtn"
+                                    class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded transition duration-200"
+                                    disabled>Wachtwoord Opslaan</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-6">
+                    <button type="button" onclick="closeModal('adminPanelModal')"
+                        class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Sluiten</button>
+                </div>
+            </div>
     </div>
 
 
