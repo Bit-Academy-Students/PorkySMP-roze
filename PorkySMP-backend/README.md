@@ -1,59 +1,62 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🌍 Landen Claim API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Deze API beheert gebruikers, spelersinformatie en teams. De architectuur maakt gebruik van Laravel Sanctum voor authenticatie en implementeert Role-Based Access Control (RBAC) op zowel het algemene gebruikersniveau (`admin`/`user`) als het teamniveau (`leader`/`mod`/`member`).
 
-## About Laravel
+## 🔑 Authenticatie (Publieke Routes)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Deze endpoints zijn publiekelijk toegankelijk voor registratie en inloggen.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Methode | Endpoint | Controller/Actie | Beschrijving |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/register` | `AuthController@register` | Registreer een nieuwe gebruiker. Maakt automatisch een `PlayerInfo` record aan. |
+| `POST` | `/api/login` | `AuthController@login` | Log in en ontvang een Sanctum Bearer Token. Registreert ook de `first_login` datum/tijd indien nodig. |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🛡️ Beveiligde Routes (Vereist `auth:sanctum`)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Alle onderstaande routes vereisen dat een geldige `Authorization: Bearer <token>` header wordt meegestuurd.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 🔒 Algemene Auth & PlayerInfo
 
-## Laravel Sponsors
+| Methode | Endpoint | Controller/Actie | Vereisten/Opmerkingen |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/logout` | `AuthController@logout` | Log de gebruiker uit door de huidige token te verwijderen. |
+| `POST` | `/api/player-info` | `PlayerInfoController@storeOrUpdate` | Maak of werk de `skin_url` van de ingelogde gebruiker bij. |
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 👥 Gebruikers (Lezen & Beheer)
 
-### Premium Partners
+#### Publieke Lijst (Gefilterd)
+| Methode | Endpoint | Controller/Actie | Vereisten/Opmerkingen |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/users` | `UserController@index` | Haalt alle gebruikers op. **Belangrijk**: Data wordt gefilterd. Normale gebruikers zien alleen `username` en teamrollen. Admins zien alle velden (`email`, `role`). |
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+#### Admin Beheer (Vereist Middleware `role:admin`)
+Deze routes zijn beveiligd met de `CheckUserRole` middleware.
 
-## Contributing
+| Methode | Endpoint | Controller/Actie | Vereisten/Opmerkingen |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/users/{user}` | `UserController@show` | Toon specifieke gebruiker (Admin ziet alle verborgen velden). |
+| `PUT` | `/api/users/{user}` | `UserController@update` | Werk gebruikersgegevens bij (bijv. `username`, `email`, `role`, `password`). |
+| `DELETE` | `/api/users/{user}` | `UserController@destroy` | Verwijder een gebruiker. |
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## 🚩 Team Endpoints
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 📖 Publieke Team Leesacties (Geen Auth)
 
-## Security Vulnerabilities
+| Methode | Endpoint | Controller/Actie | Beschrijving |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/teams` | `TeamController@index` | Haal alle teams op, inclusief leden en de `leader` computed property. |
+| `GET` | `/api/teams/{team}` | `TeamController@show` | Haal één specifiek team op, inclusief leden en de `leader` computed property. |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 🛠️ Beveiligde Team Management (Vereist `auth:sanctum`)
 
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Methode | Endpoint | Controller/Actie | Vereisten/Opmerkingen |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/teams` | `TeamController@store` | Maak een nieuw team aan. De aanvrager wordt automatisch de **Leader**. |
+| `PUT` | `/api/teams/{team}` | `TeamController@update` | Werk teamdetails bij (`team_name`, `description`, etc.). **Autorisatie**: Alleen toegestaan voor de **Leader** van het team. |
+| `DELETE` | `/api/teams/{team}` | `TeamController@destroy` | Verwijder een team. **Autorisatie**: Alleen toegestaan voor de **Leader** van het team. |
+| `POST` | `/api/teams/{team}/members/{user}/attach` | `TeamController@attachUser` | Voeg een gebruiker toe of werk de rol (`member`, `mod`, `leader`) van een lid bij. **Autorisatie**: Alleen toegestaan voor de **Leader** of een **Mod**. Regelt de **leiderschapsoverdracht** (de oude leader wordt gedowngrade naar `mod`). |
+| `DELETE` | `/api/teams/{team}/members/{user}/detach` | `TeamController@detachUser` | Verwijder een gebruiker uit het team. **Autorisatie**: Alleen toegestaan voor de **Leader** of een **Mod**. De leider kan zichzelf niet verwijderen. |

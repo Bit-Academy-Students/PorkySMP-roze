@@ -453,6 +453,27 @@ async function handlePlayerInfoManagement(event) {
 // ----------------------------------------------------
 
 /**
+ * Haalt verse data op en werkt de relevante UI-elementen in de modal bij.
+ * @param {number} teamId
+ */
+async function updateModalDataAndUI(teamId) {
+    const freshTeamData = await apiCall(`/teams/${teamId}`, 'GET');
+    if (!freshTeamData) return;
+
+    // Sla de team data op in een attribuut voor later gebruik in de modal functies
+    teamMembersModal.setAttribute('data-current-team', JSON.stringify(freshTeamData));
+
+    // Reset en vul de ledenlijst
+    displayMemberList(freshTeamData, memberSearchInput.value);
+
+    // Reset het beheer formulier
+    resetMemberManagementForm();
+
+    // Ververs ook het dashboard in de achtergrond voor de teamlijst
+    refreshDashboard();
+}
+
+/**
  * Open de Team Leden Beheer Modal.
  */
 async function openTeamMembersModal(teamId) {
@@ -460,12 +481,11 @@ async function openTeamMembersModal(teamId) {
 
     if (!team) return;
 
+    // Haal de initiële verse data op en sla op
     const freshTeamData = await apiCall(`/teams/${teamId}`, 'GET');
-
     if (!freshTeamData) return;
-
-    // Sla de team data op in een attribuut voor later gebruik in de modal functies
     teamMembersModal.setAttribute('data-current-team', JSON.stringify(freshTeamData));
+
 
     // Bepaal of de gebruiker Leader/Mod is
     const canManageMembers = team.role === 'leader' || team.role === 'mod';
@@ -530,6 +550,17 @@ function resetMemberManagementForm() {
     manageMemberNewRoleSelect.disabled = true;
     updateMemberRoleBtn.disabled = true;
     kickMemberBtn.disabled = true;
+
+    // Reset de "leader" optie disabled status
+    const leaderOption = manageMemberNewRoleSelect.querySelector('option[value="leader"]');
+    if (leaderOption) {
+        leaderOption.disabled = false;
+    }
+
+    // Visuele feedback verwijderen
+    document.querySelectorAll('#membersList > div').forEach(el => {
+        el.classList.remove('bg-gray-600', 'border-2', 'border-indigo-500');
+    });
 }
 
 /**
@@ -704,9 +735,8 @@ async function handleMemberRoleUpdate(event) {
     const result = await apiCall(`/teams/${teamId}/members/${memberId}/attach`, 'POST', data);
 
     if (result) {
-        // Ververs de modal en het dashboard
-        await refreshDashboard();
-        await openTeamMembersModal(teamId); // Herlaad de modal met nieuwe data
+        // Ververs de modal UI met verse data van de API
+        await updateModalDataAndUI(teamId); 
         showNotification(`Rol van ${username} succesvol gewijzigd naar ${newRole.toUpperCase()}.`, 'success');
     }
 }
@@ -728,9 +758,8 @@ async function handleMemberKick() {
     const result = await apiCall(`/teams/${teamId}/members/${memberId}/detach`, 'DELETE');
 
     if (result) {
-        // Ververs de modal en het dashboard
-        await refreshDashboard();
-        await openTeamMembersModal(teamId); // Herlaad de modal met nieuwe data
+        // Ververs de modal UI met verse data van de API
+        await updateModalDataAndUI(teamId); 
         showNotification(`${username} succesvol gekickt uit het team.`, 'success');
     }
 }
