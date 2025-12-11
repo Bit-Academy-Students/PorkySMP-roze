@@ -21,7 +21,6 @@ class AuthController extends Controller
         $playerInfo = PlayerInfo::firstOrNew(['user_id' => $user->id]);
 
         if (is_null($playerInfo->first_login)) {
-            // WIJZIGING: Gebruik now() in plaats van now()->toDateString() om de tijdcomponent mee te nemen
             $playerInfo->first_login = now(); 
         }
         

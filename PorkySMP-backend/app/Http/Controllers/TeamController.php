@@ -22,14 +22,12 @@ class TeamController extends Controller
     // Ophalen van alle teams
     public function index()
     {
-        // FIX: Laad alleen 'members'. De 'leader' Accessor wordt automatisch toegevoegd.
         return response()->json(Team::with('members')->get());
     }
 
     // Ophalen van één team
     public function show(Team $team)
     {
-        // FIX: Laad alleen 'members'. De 'leader' Accessor wordt automatisch toegevoegd.
         return response()->json($team->load('members'));
     }
 
@@ -86,7 +84,6 @@ class TeamController extends Controller
         // Update de team details (alleen de meegegeven velden)
         $team->update($request->only('team_name', 'description', 'flag_url', 'capital_coords'));
 
-        // FIX: Laad 'members' voor de Accessor
         return response()->json([
             'message' => 'Team details succesvol bijgewerkt.',
             'team' => $team->load('members') 
@@ -135,7 +132,7 @@ class TeamController extends Controller
         $loggedInUser = $request->user();
         
         $team->load('members'); // Zorg dat members geladen zijn
-        $leader = $team->leader; // GEBRUIK NU DE ACCESSOR
+        $leader = $team->leader;
         
         $loggedInUserRole = $this->getLoggedInUserRoleInTeam($team, $loggedInUser);
 
@@ -165,7 +162,7 @@ class TeamController extends Controller
             ], 403);
         }
         
-        // 5. CRUCIALE LOGICA: Leiderschap overdragen
+        // 5. Leiderschap overdragen
         if ($newRole === 'leader' && $leader && $leader->id !== $user->id) {
             // De ingelogde gebruiker moet de leider zijn om het leiderschap over te dragen
             if ($loggedInUserRole !== 'leader') {
@@ -190,7 +187,6 @@ class TeamController extends Controller
             $message = "Gebruiker {$user->username} succesvol toegevoegd aan team {$team->team_name} met de rol '{$newRole}'.";
         }
         
-        // FIX: Laad 'members' voor de Accessor
         return response()->json([
             'message' => $message,
             'team' => $team->load('members') 
@@ -206,7 +202,7 @@ class TeamController extends Controller
         $loggedInUser = $request->user();
         
         $team->load('members'); // Zorg dat members geladen zijn
-        $leader = $team->leader; // GEBRUIK NU DE ACCESSOR
+        $leader = $team->leader;
         
         $loggedInUserRole = $this->getLoggedInUserRoleInTeam($team, $loggedInUser);
 
@@ -231,7 +227,6 @@ class TeamController extends Controller
         
         $username = $user->username ?? 'de gebruiker';
 
-        // FIX: Laad 'members' voor de Accessor
         return response()->json([
             'message' => "Gebruiker {$username} succesvol verwijderd uit team {$team->team_name}.",
             'team' => $team->load('members') 

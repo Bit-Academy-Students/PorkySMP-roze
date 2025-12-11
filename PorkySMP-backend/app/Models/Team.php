@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Casts\Attribute; // Belangrijk: Importeer dit
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Team extends Model
 {
@@ -23,7 +23,7 @@ class Team extends Model
         'updated_at',
     ];
 
-    // CRUCIAAL: Voeg 'leader' toe om ervoor te zorgen dat deze gecomputeerde property
+    // Voeg 'leader' toe om ervoor te zorgen dat deze gecomputeerde property
     // automatisch in de JSON-output wordt opgenomen.
     protected $appends = ['leader']; 
 

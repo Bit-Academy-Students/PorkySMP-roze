@@ -11,7 +11,6 @@ class PlayerInfo extends Model
 
     protected $fillable = ['user_id', 'skin_url', 'first_login'];
     
-    // NIEUW: De attributen die verborgen moeten worden tijdens serialisatie naar JSON.
     protected $hidden = [
         'created_at',
         'updated_at',

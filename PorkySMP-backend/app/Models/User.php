@@ -21,12 +21,11 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
-        'role', // Zorg ervoor dat de rol indien nodig in te stellen is via de admin-route
+        'role',
     ];
 
     /**
      * De attributen die verborgen moeten worden tijdens serialisatie naar JSON.
-     * Nu is 'role' toegevoegd om de algemene rol te verbergen voor normale users.
      */
     protected $hidden = [
         'password',
